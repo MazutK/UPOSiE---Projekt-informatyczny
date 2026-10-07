@@ -1,0 +1,27 @@
+:root {
+  --bg: #0f1419;
+  --surface: #171e26;
+  --surface-raised: #1f2833;
+  --border: #2b3643;
+  --text: #e6edf3;
+  --text-muted: #94a3b8;
+
+  --accent: #38bdf8;
+  --optimal: #38bdf8;
+  --thermostat: #f59e0b;
+  --price: #a78bfa;
+  --outside: #64748b;
+  --good: #34d399;
+  --bad: #f87171;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius: 10px;
+  --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Consolas", monospace;
+}

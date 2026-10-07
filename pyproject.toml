@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = [".venv", "node_modules", "apps/web"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["packages/core/tests", "apps/api/tests"]
+pythonpath = ["packages/core/src", "apps/api/src"]

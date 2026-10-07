@@ -1,0 +1,25 @@
+{
+  "name": "optymalizator-ogrzewania",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Monorepo: rdzeń optymalizacji (Python), API (FastAPI) i GUI (React)",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "preview": "npm run preview --workspace apps/web",
+    "lint": "npm run lint --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web",
+    "api": "uvicorn hems_api:app --reload --app-dir apps/api/src --port 8000",
+    "test:py": "pytest",
+    "lint:py": "ruff check . && ruff format --check ."
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
