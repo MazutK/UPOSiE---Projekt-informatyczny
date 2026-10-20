@@ -10,7 +10,9 @@ def load_pse(path: Path) -> pd.DataFrame:
     rows = payload["value"] if isinstance(payload, dict) else payload
     frame = pd.DataFrame(rows)
     time_col = "dtime" if "dtime" in frame.columns else "udtczas"
-    frame["ts"] = pd.to_datetime(frame[time_col])
+    # PSE podaje koniec kwadransa (00:15 ... 24:00), cofamy na jego poczatek,
+    # zeby kwadranse 00:00-01:00 trafily do godziny 0.
+    frame["ts"] = pd.to_datetime(frame[time_col]) - pd.Timedelta(minutes=15)
     frame["price_mwh"] = pd.to_numeric(frame["rce_pln"], errors="raise")
     return frame[["ts", "price_mwh"]]
 
