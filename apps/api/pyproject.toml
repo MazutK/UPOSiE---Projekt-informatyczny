@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hems-api"
+version = "0.2.0"
+description = "HTTP API dla optymalizatora ogrzewania"
+requires-python = ">=3.10"
+dependencies = [
+    "heating-optimizer",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

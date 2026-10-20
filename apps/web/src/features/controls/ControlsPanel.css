@@ -1,0 +1,9 @@
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.controls[aria-busy="true"] {
+  opacity: 0.7;
+}

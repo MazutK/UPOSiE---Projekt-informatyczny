@@ -1,0 +1,42 @@
+.hourly {
+  max-height: 340px;
+  overflow: auto;
+}
+
+.hourly__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.hourly__table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  text-align: right;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.hourly__table td {
+  text-align: right;
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.hourly__table tr.is-cold td {
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+}
+
+.hourly__table td.is-on-optimal {
+  color: var(--optimal);
+  font-weight: 600;
+}
+
+.hourly__table td.is-on-thermostat {
+  color: var(--thermostat);
+  font-weight: 600;
+}

@@ -1,0 +1,78 @@
+.summary {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 3fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 760px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary__headline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--good);
+  border-radius: var(--radius);
+}
+
+.summary__headline.is-bad {
+  border-left-color: var(--bad);
+}
+
+.summary__headline-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.summary__headline-value {
+  font-size: 1.6rem;
+  font-family: var(--font-mono);
+}
+
+.summary__headline-pct {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.summary__headline-note {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.summary__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.summary__metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.summary__metric-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.summary__metric-optimal {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--optimal);
+}
+
+.summary__metric-thermostat {
+  font-size: 0.75rem;
+  color: var(--thermostat);
+}

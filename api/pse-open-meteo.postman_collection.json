@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "Lab 3 - PSE RCE i Open-Meteo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Open-Meteo archive - Warszawa 2026-10-13",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "https://archive-api.open-meteo.com/v1/archive?latitude=52.2297&longitude=21.0122&start_date=2026-10-13&end_date=2026-10-13&hourly=temperature_2m,shortwave_radiation&timezone=Europe/Warsaw"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "const d = pm.response.json();",
+              "pm.test(\"Sa pola pogodowe\", () => {",
+              "  pm.expect(d.hourly.temperature_2m).to.be.an(\"array\").that.is.not.empty;",
+              "  pm.expect(d.hourly.shortwave_radiation).to.be.an(\"array\").that.is.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PSE RCE - doba 2026-10-13",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "User-Agent", "value": "Mozilla/5.0" }],
+        "url": "https://api.raporty.pse.pl/api/rce-pln?$filter=business_date eq '2026-10-13'"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "const d = pm.response.json();",
+              "pm.test(\"Tablica value niepusta\", () => {",
+              "  pm.expect(d.value).to.be.an(\"array\").that.is.not.empty;",
+              "  pm.expect(d.value[0]).to.have.property(\"rce_pln\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
