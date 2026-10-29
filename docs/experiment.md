@@ -53,7 +53,24 @@ _(uzupełnia Osoba 2)_
 
 ## 5. Implementacja wariantów
 
-_(uzupełnia Osoba 3)_
+Skrypt: `scripts/compare_methods.py` (tylko biblioteka standardowa + istniejący pakiet `packages/core`).
+Silnika nie zmieniano — skrypt woła gotowe funkcje:
+
+| Wariant | Funkcja silnika | Reguła |
+|---|---|---|
+| bazowy `termostat` | `simulate_thermostat(model, inputs, t_min, t_max, t_start)` | T ≤ T_min → 1, T ≥ T_max → 0, inaczej poprzedni stan; ceny ignorowane |
+| metoda `dp` | `find_optimal_schedule(model, inputs, ComfortBand(...), t_start)` | najtańszy plan 0/1 na 24 h, najpierw kara za zimno, potem zł |
+
+Co robi skrypt:
+1. sprawdza wejście: 4 kolumny, 24 unikalne godziny 0..23, brak pustych / nieskończonych wartości;
+2. liczy oba plany na **tych samych** danych, modelu i paśmie;
+3. zapisuje `observations.csv` (1 wiersz = 1 godzina: cena, pogoda, decyzja, temperatura i koszt obu wariantów);
+4. zapisuje `comparison.csv` (1 wiersz = 1 wariant: koszt, kWh, godziny grzania, godziny poniżej T_min,
+   deficyt °C·h, średnia/min/max T, oszczędność zł i %, czy spełnione kryterium);
+5. nie pozwala nadpisać pliku wejściowego.
+
+Parametry z linii poleceń: `--t-min`, `--t-max`, `--t-start`, `--max-overshoot`, `--min-saving-pct`
+(domyślne = wartości z p. 3). Brak losowania.
 
 ## 6. Wyniki i próba wrażliwości
 

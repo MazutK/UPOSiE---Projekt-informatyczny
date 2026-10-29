@@ -1,0 +1,3 @@
+wariant,parametry,dane,n_godzin,koszt_pln,energia_kwh,godziny_grzania,godziny_ponizej_tmin,deficyt_c_h,srednia_temp_c,min_temp_c,max_temp_c,oszczednosc_pln,oszczednosc_proc,kryterium_spelnione
+termostat,t_min=21.0;t_max=22.5;t_start=21.8;max_overshoot=1.0,data/processed/doba-live.csv,24,11.1525,15.0,10,4,0.87,21.754,20.65,22.87,0.0,0.0,-
+dp,t_min=21.0;t_max=22.5;t_start=21.8;max_overshoot=1.0,data/processed/doba-live.csv,24,5.3469,9.0,6,0,0.0,21.526,21.02,22.06,5.8056,52.06,true
