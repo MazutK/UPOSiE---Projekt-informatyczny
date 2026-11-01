@@ -49,7 +49,46 @@ na tych samych danych wejściowych i tym samym modelu budynku. Brak losowania.
 
 ## 4. Źródła i uzasadnienie metody
 
-_(uzupełnia Osoba 2)_
+| Źródło: autor lub instytucja, tytuł, rok i link/DOI | Metoda lub wniosek przydatny w projekcie | Założenie albo ograniczenie | Co wykorzystano? |
+|---|---|---|---|
+| D. P. Bertsekas, *Dynamic Programming and Optimal Control*, t. I, wyd. 4, Athena Scientific, 2017, rozdz. 1 (1.2 „The Basic Problem”, 1.3 „The Dynamic Programming Algorithm”, 1.4 „State Augmentation and Other Reformulations”); ISBN 978-1-886529-43-4; https://www.mit.edu/~dimitrib/dpbook.html | Problem decyzyjny w N etapach z kosztem sumowanym po etapach; zasada optymalności (końcówka planu optymalnego jest optymalna dla podproblemu startującego z tego samego stanu), więc optimum to ciąg prostych minimalizacji etap po etapie; rozszerzenie stanu, gdy decyzja działa z opóźnieniem | Skończony horyzont, koszt addytywny w czasie, znany model przejścia stanu; nakład obliczeń rośnie z liczbą stanów | Sformułowanie `find_optimal_schedule`: 24 etapy (godziny), decyzja 0/1, koszt = kara za zimno + zł; stan = temperatura + historia grzałki (opóźnienie 2 h obsłużone rozszerzeniem stanu jak w p. 1.4) |
+| F. Oldewurtel, A. Parisio, C. N. Jones, D. Gyalistras, M. Gwerder, V. Stauch, B. Lehmann, M. Morari, *Use of model predictive control and weather forecasts for energy efficient building climate control*, Energy and Buildings 45 (2012) 15–27, DOI: 10.1016/j.enbuild.2011.09.022 | Sterowanie predykcyjne z prognozą pogody (MPC, także stochastyczne SMPC) zużywa wyraźnie mniej energii niż sterowanie regułowe (RBC, obecna praktyka); horyzont 24 h z krokiem 1 h wystarczał, by większość badanych przypadków była w granicy 5 % od teoretycznego optimum | Badanie symulacyjne (rok 2007, model RC budynku); celem jest zużycie nieodnawialnej energii pierwotnej, nie koszt przy cenach dynamicznych (zmienne wagi kosztu są dopuszczone, ale wyników dla cen dynamicznych brak); niepewność prognozy modelowana jawnie | Uzasadnienie porównania z regułą (termostat = odpowiednik RBC, wymaganie R4), horyzontu 24 h z krokiem 1 h oraz oceny dwiema miarami: koszt i naruszenia pasma komfortu |
+
+**Uzasadnienie wyboru metody.** Problem ma strukturę „problemu podstawowego” z rozdz. 1 Bertsekasa:
+24 etapy, dwie decyzje na etap, koszt sumowany po godzinach, stan zależny od poprzedniej decyzji.
+Ceny RCE i pogoda dla 2026-10-13 są danymi archiwalnymi, więc w porównaniu nie ma zakłóceń losowych
+i DP daje plan optymalny dla przyjętego modelu budynku (z dokładnością do siatki 0,05 °C, na której
+silnik łączy stany). Silnik liczy warstwy stanów od pierwszej godziny i odtwarza plan od końca —
+dla problemu deterministycznego daje to ten sam wynik co rekurencja wsteczna z p. 1.3.
+Koszt porównywany jest leksykograficznie: najpierw kara za zimno, potem zł (zgodnie z p. 3).
+Wariant bazowy — termostat z histerezą — odpowiada sterowaniu regułowemu (RBC), z którym
+Oldewurtel i in. porównują MPC.
+
+**Odrzucona alternatywa: stochastyczne MPC (SMPC) w ruchomym horyzoncie**, jak u Oldewurtela i in.
+Wymaga modelu błędu prognozy (pogody, a u nas także cen) i solvera optymalizacji stożkowej, a w tym
+porównaniu dane są znane z góry, więc nie ma niepewności do modelowania. Skutek: wynik DP jest
+oszczędnością przy idealnej prognozie — w działaniu na prognozach będzie niższy (do p. 8).
+
+### Demonstracja z instrukcji (`examples/lab4/`)
+
+Przed adaptacją uruchomiono przykład prognozy zgłoszeń z instrukcji Lab 4 (dane syntetyczne,
+12 dni, historia początkowa 8 dni, ocena dni 9–12, bez losowania):
+
+```
+python examples/lab4/compare_forecasts.py examples/lab4/data/popyt.csv examples/lab4/results/okno3 --window 3
+python examples/lab4/compare_forecasts.py examples/lab4/data/popyt.csv examples/lab4/results/okno5 --window 5
+```
+
+| Okno | Dni oceny | MAE — ostatnia wartość | MAE — średnia ruchoma | Spadek MAE ≥ 0,5? |
+|---|---|---|---|---|
+| 3 | 4 | 1,5 | 1,0 | tak |
+| 5 | 4 | 1,5 | 1,5 | nie |
+
+Ręczna kontrola (9 października): wariant bazowy = 15, średnia z 6–8 października (14, 13, 15) = 14,
+rzeczywista wartość = 14, więc błędy 1 i 0 — zgodnie z `results/okno3/observations.csv`.
+Wyniki zgadzają się z instrukcją. Średnia nie może zawierać prognozowanego dnia, bo w chwili
+prognozy jego wartość nie jest znana (wyciek informacji). Zmiana okna z 3 na 5 dni usuwa przewagę
+metody — ranking zależy od parametru, dlatego w naszym porównaniu zaplanowano próbę wrażliwości (p. 3).
 
 ## 5. Implementacja wariantów
 
