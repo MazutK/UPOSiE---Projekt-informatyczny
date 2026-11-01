@@ -1,7 +1,7 @@
 .comparison-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-4);
 }
 
 .comparison-table-wrapper {
@@ -11,42 +11,74 @@
 .comparison-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
   text-align: left;
 }
 
-.comparison-table th,
-.comparison-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--color-border, #eee);
-}
-
 .comparison-table th {
-  background: var(--color-surface-subtle, #f9fafb);
-  font-weight: 600;
-  color: var(--color-text-muted, #4b5563);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 0.8rem;
 }
 
-.comparison-table tr--dp {
-  background: #f0fdf4;
+.comparison-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.comparison-table__row--dp td {
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+}
+
+.comparison-table__label {
+  font-family: var(--font);
   font-weight: 600;
+  color: var(--text);
+}
+
+.comparison-table__desc {
+  font-family: var(--font);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .comparison-table__saving--pos {
-  color: #16a34a;
+  color: var(--good);
   font-weight: 700;
 }
 
 .comparison-table__saving--zero {
-  color: #6b7280;
+  color: var(--text-muted);
+}
+
+.comparison-table__danger {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.comparison-table__success {
+  color: var(--good);
 }
 
 .comparison-summary {
   font-size: 0.85rem;
-  color: var(--color-muted, #4b5563);
+  color: var(--text-muted);
   line-height: 1.5;
-  background: var(--color-surface-subtle, #f9fafb);
-  padding: 10px 14px;
+  background: var(--surface-raised);
+  padding: var(--space-3) var(--space-4);
   border-radius: 6px;
-  border-left: 4px solid var(--color-primary, #2563eb);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  font-family: var(--font);
+}
+
+.comparison-summary strong {
+  color: var(--text);
 }

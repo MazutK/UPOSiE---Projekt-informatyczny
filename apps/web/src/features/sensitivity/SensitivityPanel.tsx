@@ -157,12 +157,12 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
                   <tr key={r.value}>
                     <td>
                       <strong>
-                        {r.value.toFixed(1)} {parameter === "t_min" ? "°C" : "°C"}
+                        {r.value.toFixed(1)} °C
                       </strong>
                     </td>
                     <td>{r.dp_cost_pln.toFixed(2)} zł</td>
                     <td>{r.thermostat_cost_pln.toFixed(2)} zł</td>
-                    <td style={{ color: "#16a34a", fontWeight: 600 }}>
+                    <td className="sensitivity-table__saving">
                       +{r.saving_pln.toFixed(2)} zł
                     </td>
                     <td>
@@ -171,9 +171,9 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
                     </td>
                     <td>
                       {r.dp_hours_below_t_min === 0 ? (
-                        <span style={{ color: "#16a34a" }}>0 h</span>
+                        <span className="sensitivity-table__success">0 h</span>
                       ) : (
-                        <span style={{ color: "#dc2626" }}>{r.dp_hours_below_t_min} h</span>
+                        <span className="sensitivity-table__danger">{r.dp_hours_below_t_min} h</span>
                       )}
                     </td>
                     <td>{r.thermostat_hours_below_t_min} h</td>

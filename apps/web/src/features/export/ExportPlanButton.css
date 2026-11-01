@@ -1,35 +1,37 @@
 .export-plan {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  flex-wrap: wrap;
 }
 
 .export-plan__btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--color-primary, #2563eb);
-  color: white;
-  border: none;
-  padding: 8px 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 8px 16px;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 }
 
-.export-plan__btn:hover {
-  background: #1d4ed8;
+.export-plan__btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #0f1419;
 }
 
 .export-plan__btn:disabled {
-  background: #9ca3af;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .export-plan__hint {
   font-size: 0.8rem;
-  color: var(--color-muted, #666);
+  color: var(--text-muted);
 }

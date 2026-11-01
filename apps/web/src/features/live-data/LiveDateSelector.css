@@ -1,60 +1,75 @@
 .live-data {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .live-data__row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .live-data__input {
-  padding: 6px 10px;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-family: inherit;
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color-scheme: dark;
+}
+
+.live-data__input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .live-data__btn {
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-primary, #2563eb);
-  color: var(--color-primary, #2563eb);
-  padding: 6px 12px;
-  border-radius: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .live-data__btn:hover:not(:disabled) {
-  background: var(--color-primary, #2563eb);
-  color: #fff;
+  background: var(--accent);
+  color: #0f1419;
 }
 
 .live-data__btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .live-data__status {
   font-size: 0.8rem;
   margin: 0;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.live-data__status strong {
+  color: var(--text);
 }
 
 .live-data__status--info {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: color-mix(in srgb, var(--good) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--good) 35%, transparent);
+  color: var(--good);
 }
 
 .live-data__status--error {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+  color: var(--bad);
 }

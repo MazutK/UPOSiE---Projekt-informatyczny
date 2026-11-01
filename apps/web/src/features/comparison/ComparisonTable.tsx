@@ -72,13 +72,14 @@ export function ComparisonTable({ settings }: ComparisonTableProps) {
               {methods.map((m) => {
                 const isDP = m.method === "dp";
                 return (
-                  <tr key={m.method} className={isDP ? "comparison-table tr--dp" : undefined}>
+                  <tr
+                    key={m.method}
+                    className={isDP ? "comparison-table__row--dp" : undefined}
+                  >
                     <td>
                       <div>
-                        <strong>{m.label}</strong>
-                        <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                          {m.description}
-                        </div>
+                        <div className="comparison-table__label">{m.label}</div>
+                        <div className="comparison-table__desc">{m.description}</div>
                       </div>
                     </td>
                     <td>{m.cost_pln.toFixed(2)} zł</td>
@@ -86,9 +87,9 @@ export function ComparisonTable({ settings }: ComparisonTableProps) {
                     <td>{m.heating_hours} h</td>
                     <td>
                       {m.hours_below_t_min === 0 ? (
-                        <span style={{ color: "#16a34a" }}>0 h</span>
+                        <span className="comparison-table__success">0 h</span>
                       ) : (
-                        <span style={{ color: "#dc2626", fontWeight: 600 }}>
+                        <span className="comparison-table__danger">
                           {m.hours_below_t_min} h ({m.deficit_kh.toFixed(2)} °C·h)
                         </span>
                       )}

@@ -1,47 +1,61 @@
 .sensitivity-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-4);
 }
 
 .sensitivity-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .sensitivity-select-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .sensitivity-select {
-  padding: 6px 10px;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  font-size: 0.875rem;
-  background: var(--color-surface, #fff);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  color-scheme: dark;
+}
+
+.sensitivity-select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .sensitivity-export-btn {
-  margin-left: auto;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #ddd);
-  padding: 6px 12px;
-  border-radius: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.sensitivity-export-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+.sensitivity-export-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sensitivity-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .sensitivity-table-wrapper {
@@ -51,26 +65,45 @@
 .sensitivity-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
   text-align: left;
 }
 
-.sensitivity-table th,
-.sensitivity-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--color-border, #eee);
+.sensitivity-table th {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 0.8rem;
 }
 
-.sensitivity-table th {
-  background: var(--color-surface-subtle, #f9fafb);
+.sensitivity-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.sensitivity-table__saving {
+  color: var(--good);
   font-weight: 600;
+}
+
+.sensitivity-table__danger {
+  color: var(--bad);
+}
+
+.sensitivity-table__success {
+  color: var(--good);
 }
 
 .sensitivity-bar {
   display: inline-block;
-  height: 8px;
-  background: var(--color-primary, #2563eb);
-  border-radius: 4px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 3px;
   margin-right: 6px;
   vertical-align: middle;
 }
