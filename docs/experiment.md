@@ -113,7 +113,24 @@ Parametry z linii poleceń: `--t-min`, `--t-max`, `--t-start`, `--max-overshoot`
 
 ## 6. Wyniki i próba wrażliwości
 
-_(uzupełnia Osoba 4)_
+Pliki: `results/lab4/observations.csv`, `results/lab4/comparison.csv`,
+`results/lab4/sensitivity/observations.csv`, `results/lab4/sensitivity/comparison.csv`.
+
+| Wariant i parametry | Dane lub scenariusz | Liczba przypadków | Miara, jednostka i wynik | Koszt lub ograniczenie |
+|---|---|---|---|---|
+| Bazowy: termostat, T_min 21,0, T_max 22,5, start 21,8 | `doba-live.csv`, 2026-10-13 | 24 h | 11,15 zł; 15,0 kWh; 4 h poniżej T_min (min 20,65 °C) | grzeje 7:00–16:00, w tym drogie 7–9 |
+| Metoda: DP, te same parametry, max_overshoot 1,0 | `doba-live.csv`, 2026-10-13 | 24 h | 5,35 zł; 9,0 kWh; 0 h poniżej T_min (min 21,02 °C) | grzeje 0–1 i 10–13 (tanie godziny) |
+| Próba wrażliwości: T_min 21,5 (reszta bez zmian) | `doba-live.csv`, 2026-10-13 | 24 h | termostat 11,39 zł / 5 h poniżej; DP 7,28 zł / 0 h poniżej | DP droższy o 1,93 zł względem T_min 21,0 |
+
+Różnica podstawowa: DP − termostat = **−5,81 zł (−52,1 %)**, godziny poniżej T_min 0 vs 4.
+Kryterium praktyczne (≥ 5 % i nie zimniej): **spełnione** (`kryterium_spelnione = true`).
+
+Wrażliwość: przy T_min 21,5 oszczędność spada do −4,11 zł (−36,1 %), DP nadal 0 h poniżej T_min,
+termostat 5 h. **Wniosek o wyborze metody się nie zmienia.** Cieplejsze pasmo kosztuje DP
++1,93 zł/dobę (+36 %).
+
+Parametru wrażliwości nie dobierano po obejrzeniu wyników — T_min 21,5 zapisano w p. 3 przed uruchomieniem.
+Brak losowania, więc brak rozrzutu między powtórzeniami; dwa uruchomienia dają identyczne pliki.
 
 ## 7. Kontrola obliczeń
 
