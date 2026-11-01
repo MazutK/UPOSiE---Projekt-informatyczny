@@ -16,6 +16,7 @@ DESCRIPTIONS = {
     "doba_szczyt_wieczorny": "ostry szczyt cenowy 17-21",
     "doba_mroz": "mróz do -10 °C",
     "doba_slonecznie": "bezchmurny dzień zimowy",
+    "doba_live": "doba rzeczywista z PSE i Open-Meteo",
 }
 
 

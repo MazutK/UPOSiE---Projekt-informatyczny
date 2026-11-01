@@ -27,7 +27,7 @@ export function ControlsPanel({ settings, scenarios, disabled, onChange }: Contr
           onChange={(scenario) => patch({ scenario })}
         />
         <NumberField
-          label="Dolna granica komfortu"
+          label="Dolna granica komfortu (T_min)"
           unit="°C"
           min={16}
           max={24}
@@ -36,7 +36,7 @@ export function ControlsPanel({ settings, scenarios, disabled, onChange }: Contr
           onChange={(t_min) => patch({ t_min, t_max: Math.max(t_min, settings.t_max) })}
         />
         <NumberField
-          label="Górna granica komfortu"
+          label="Górna granica komfortu (T_max)"
           unit="°C"
           min={16}
           max={26}
@@ -45,13 +45,22 @@ export function ControlsPanel({ settings, scenarios, disabled, onChange }: Contr
           onChange={(t_max) => patch({ t_max, t_min: Math.min(t_max, settings.t_min) })}
         />
         <NumberField
-          label="Temperatura początkowa"
+          label="Temperatura początkowa (T_start)"
           unit="°C"
           min={15}
           max={26}
           step={0.1}
           value={settings.t_start}
           onChange={(t_start) => patch({ t_start })}
+        />
+        <NumberField
+          label="Dopuszczalne przegrzanie (max_overshoot)"
+          unit="°C"
+          min={0}
+          max={3}
+          step={0.5}
+          value={settings.max_overshoot ?? 1.0}
+          onChange={(max_overshoot) => patch({ max_overshoot })}
         />
       </div>
     </Card>

@@ -10,6 +10,7 @@ def test_bundled_scenarios_are_discoverable():
         "doba_slonecznie",
         "doba_szczyt_wieczorny",
         "doba_zmienna_cena",
+        "doba_live",
     }
     assert all(scenario.hours == 24 for scenario in available())
 

@@ -321,12 +321,12 @@ Wpiszcie imiona (są też w `README.md`):
 
 | Osoba | Imię | Odpowiada za                                      |
 | ----- | ---- | ------------------------------------------------- |
-| 1     | Sku  | prawa kolumna GUI (wynik)                         |
-| 2     | Kma  | lewa kolumna GUI + klient HTTP                    |
-| 3     | Owy  | dane publiczne PSE + Open-Meteo                   |
-| 4     | Kba  | porównanie metod (trzecia reguła)                 |
-| 5     | Sra  | analiza wrażliwości                               |
-| 6     | Pum  | wymuszenia godzin, eksport CSV, karta i ściągawka |
+| 1     | Sebastian Król | prawa kolumna GUI (wynik)                         |
+| 2     | Kacper Mazur | lewa kolumna GUI + klient HTTP                    |
+| 3     | Oskar Wysocki | dane publiczne PSE + Open-Meteo                   |
+| 4     | Karol Brzozowski | porównanie metod (trzecia reguła)                 |
+| 5     | Sebastian Rączka | analiza wrażliwości                               |
+| 6     | Patryk Uchman | wymuszenia godzin, eksport CSV, karta i ściągawka |
 
 Kolejność poniżej jest po to, żeby nikt na nikogo nie czekał tydzień.
 Krok 1 i krok 2 idą **równolegle**. Potem sklejenie, potem demo.

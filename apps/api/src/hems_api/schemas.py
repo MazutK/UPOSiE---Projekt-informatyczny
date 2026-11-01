@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -69,3 +71,82 @@ class OptimizeResponse(BaseModel):
     thermostat: PlanSummary
     saving_pln: float
     saving_pct: float
+
+
+class MethodComparisonOut(BaseModel):
+    method: str
+    label: str
+    description: str
+    cost_pln: float
+    energy_kwh: float
+    heating_hours: int
+    hours_below_t_min: int
+    deficit_kh: float
+    mean_temp_c: float
+    min_temp_c: float
+    max_temp_c: float
+    saving_pln: float
+    saving_pct: float
+
+
+class CompareRequest(BaseModel):
+    scenario: str = "doba_zmienna_cena"
+    t_min: float = Field(default=21.0, ge=5.0, le=30.0)
+    t_max: float = Field(default=22.5, ge=5.0, le=30.0)
+    t_start: float = Field(default=21.8, ge=0.0, le=35.0)
+    max_overshoot: float = Field(default=1.0, ge=0.0, le=5.0)
+    overrides: dict[int, int] = Field(default_factory=dict)
+    model_params: ModelParams = Field(default_factory=ModelParams)
+
+    @model_validator(mode="after")
+    def check_band(self) -> CompareRequest:
+        if self.t_min > self.t_max:
+            raise ValueError("t_min nie może być większe niż t_max")
+        return self
+
+
+class CompareResponse(BaseModel):
+    scenario: str
+    t_min: float
+    t_max: float
+    t_start: float
+    methods: list[MethodComparisonOut]
+
+
+class SensitivityRowOut(BaseModel):
+    value: float
+    dp_cost_pln: float
+    thermostat_cost_pln: float
+    saving_pln: float
+    saving_pct: float
+    dp_heating_hours: int
+    thermostat_heating_hours: int
+    dp_hours_below_t_min: int
+    thermostat_hours_below_t_min: int
+    dp_mean_temp_c: float
+
+
+class SensitivityRequest(BaseModel):
+    scenario: str = "doba_zmienna_cena"
+    parameter: Literal["t_min", "max_overshoot"] = "t_min"
+    values: list[float] | None = None
+    t_min: float = Field(default=21.0, ge=5.0, le=30.0)
+    t_max: float = Field(default=22.5, ge=5.0, le=30.0)
+    t_start: float = Field(default=21.8, ge=0.0, le=35.0)
+    max_overshoot: float = Field(default=1.0, ge=0.0, le=5.0)
+    overrides: dict[int, int] = Field(default_factory=dict)
+    model_params: ModelParams = Field(default_factory=ModelParams)
+
+
+class SensitivityResponse(BaseModel):
+    parameter: str
+    scenario: str
+    rows: list[SensitivityRowOut]
+
+
+class LiveDayResponse(BaseModel):
+    date: str
+    scenario_name: str
+    source: str
+    hours: int
+    message: str

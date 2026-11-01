@@ -1,4 +1,13 @@
-import type { OptimizeRequest, OptimizeResponse, Scenario } from "./types";
+import type {
+  CompareRequest,
+  CompareResponse,
+  LiveDayResponse,
+  OptimizeRequest,
+  OptimizeResponse,
+  Scenario,
+  SensitivityRequest,
+  SensitivityResponse,
+} from "./types";
 
 const BASE = "/api";
 
@@ -48,4 +57,9 @@ export const api = {
   scenarios: () => request<Scenario[]>("/scenarios"),
   optimize: (body: OptimizeRequest) =>
     request<OptimizeResponse>("/optimize", { method: "POST", body: JSON.stringify(body) }),
+  compare: (body: CompareRequest) =>
+    request<CompareResponse>("/compare", { method: "POST", body: JSON.stringify(body) }),
+  sensitivity: (body: SensitivityRequest) =>
+    request<SensitivityResponse>("/sensitivity", { method: "POST", body: JSON.stringify(body) }),
+  live: (date: string) => request<LiveDayResponse>(`/live?date=${encodeURIComponent(date)}`),
 };

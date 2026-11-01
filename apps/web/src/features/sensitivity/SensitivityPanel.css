@@ -1,0 +1,76 @@
+.sensitivity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sensitivity-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sensitivity-select-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sensitivity-select {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: var(--color-surface, #fff);
+}
+
+.sensitivity-export-btn {
+  margin-left: auto;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #ddd);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sensitivity-export-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.sensitivity-table-wrapper {
+  overflow-x: auto;
+}
+
+.sensitivity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.sensitivity-table th,
+.sensitivity-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border, #eee);
+}
+
+.sensitivity-table th {
+  background: var(--color-surface-subtle, #f9fafb);
+  font-weight: 600;
+}
+
+.sensitivity-bar {
+  display: inline-block;
+  height: 8px;
+  background: var(--color-primary, #2563eb);
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}

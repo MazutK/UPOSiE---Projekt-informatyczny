@@ -16,6 +16,7 @@ def test_scenarios_expose_bundled_data():
     assert response.status_code == 200
     names = {item["name"] for item in response.json()}
     assert "doba_szczyt_wieczorny" in names
+    assert "doba_live" in names
 
 
 def test_optimize_returns_full_horizon_and_beats_thermostat():
@@ -55,3 +56,43 @@ def test_unknown_scenario_is_404():
 def test_inverted_comfort_band_is_422():
     response = client.post("/api/optimize", json={"t_min": 23.0, "t_max": 21.0})
     assert response.status_code == 422
+
+
+def test_compare_endpoint_returns_methods():
+    response = client.post(
+        "/api/compare",
+        json={"scenario": "doba_szczyt_wieczorny", "t_min": 21.0, "t_max": 22.5},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scenario"] == "doba_szczyt_wieczorny"
+    assert len(data["methods"]) == 4
+    methods = [m["method"] for m in data["methods"]]
+    assert "dp" in methods
+    assert "termostat" in methods
+    assert "zachlanna" in methods
+    assert "progowo" in methods
+
+
+def test_sensitivity_endpoint():
+    response = client.post(
+        "/api/sensitivity",
+        json={
+            "scenario": "doba_zmienna_cena",
+            "parameter": "t_min",
+            "values": [20.5, 21.0, 21.5],
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["parameter"] == "t_min"
+    assert len(data["rows"]) == 3
+    assert data["rows"][0]["value"] == 20.5
+
+
+def test_live_endpoint():
+    response = client.get("/api/live?date=2026-10-13")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scenario_name"] == "doba_live"
+    assert data["hours"] == 24

@@ -144,3 +144,18 @@ Próbka pochodzi z rzeczywistego źródła Open-Meteo i nie zawiera danych osobo
 | Plan awaryjny                         | wbudowane CSV w `packages/core/src/heating_optimizer/data/`                                     |
 
 Parametry zapytania Open-Meteo: `latitude=52.2297`, `longitude=21.0122`, `start_date=end_date=2026-10-13`, `hourly=temperature_2m,shortwave_radiation`, `timezone=Europe/Warsaw`.
+
+
+---
+
+# Wdrożony moduł danych publicznych (Lab 4 / Etap 2)
+
+Zaimplementowano moduł `packages/core/src/heating_optimizer/data_sources/` oraz endpoint `GET /api/live?date=YYYY-MM-DD`.
+
+- **Data testowa:** 2026-10-13 (Warszawa, archiwum Open-Meteo i raporty OSP PSE).
+- **Skąd wzięte:**
+  - PSE API: `https://api.raporty.pse.pl/api/rce-pln` (agregacja kwadransów do średniej godzinowej PLN/kWh).
+  - Open-Meteo API: `https://archive-api.open-meteo.com/v1/archive` oraz `https://api.open-meteo.com/v1/forecast`.
+- **Plan awaryjny (fallback offline):**
+  - W razie braku połączenia sieciowego, błędu HTTP lub niedostępności API PSE/Open-Meteo, aplikacja automatycznie korzysta z wbudowanej doby rzeczywistej `doba_live.csv` (znajdującej się w `packages/core/src/heating_optimizer/data/doba_live.csv`) lub z lokalnych fixture'ów JSON w `data/raw/`.
+  - Dzięki temu prezentacja demo i testy jednostkowe działają w 100% niezawodnie w trybie offline.

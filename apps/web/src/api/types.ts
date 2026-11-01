@@ -57,3 +57,76 @@ export interface OptimizeResponse {
   saving_pln: number;
   saving_pct: number;
 }
+
+export interface MethodComparison {
+  method: string;
+  label: string;
+  description: string;
+  cost_pln: number;
+  energy_kwh: number;
+  heating_hours: number;
+  hours_below_t_min: number;
+  deficit_kh: number;
+  mean_temp_c: number;
+  min_temp_c: number;
+  max_temp_c: number;
+  saving_pln: number;
+  saving_pct: number;
+}
+
+export interface CompareRequest {
+  scenario: string;
+  t_min: number;
+  t_max: number;
+  t_start: number;
+  max_overshoot?: number;
+  overrides?: Record<number, 0 | 1>;
+  model_params?: ModelParams;
+}
+
+export interface CompareResponse {
+  scenario: string;
+  t_min: number;
+  t_max: number;
+  t_start: number;
+  methods: MethodComparison[];
+}
+
+export interface SensitivityRow {
+  value: number;
+  dp_cost_pln: number;
+  thermostat_cost_pln: number;
+  saving_pln: number;
+  saving_pct: number;
+  dp_heating_hours: number;
+  thermostat_heating_hours: number;
+  dp_hours_below_t_min: number;
+  thermostat_hours_below_t_min: number;
+  dp_mean_temp_c: number;
+}
+
+export interface SensitivityRequest {
+  scenario: string;
+  parameter: "t_min" | "max_overshoot";
+  values?: number[];
+  t_min?: number;
+  t_max?: number;
+  t_start?: number;
+  max_overshoot?: number;
+  overrides?: Record<number, 0 | 1>;
+  model_params?: ModelParams;
+}
+
+export interface SensitivityResponse {
+  parameter: string;
+  scenario: string;
+  rows: SensitivityRow[];
+}
+
+export interface LiveDayResponse {
+  date: string;
+  scenario_name: string;
+  source: string;
+  hours: number;
+  message: string;
+}
