@@ -191,8 +191,50 @@ potwierdza koszt 11,15 zł (termostat) vs 5,35 zł (DP) i oszczędność 52,1 %.
 
 ## 8. Wnioski i ograniczenia
 
-_(uzupełnia Osoba 6)_
+
+**Który wariant jest lepszy i o ile?** DP: 5,35 zł zamiast 11,15 zł na dobę 2026-10-13,
+czyli −5,81 zł (−52,1 %), przy 0 h poniżej T_min (termostat: 4 h). Kryterium praktyczne
+(≥ 5 % i nie zimniej) jest spełnione.
+
+**Czy poprawa uzasadnia koszt i złożoność?** Tak w tej próbie: DP nie wymaga nowych danych
+(te same ceny i pogoda co termostat) ani nowego sprzętu, a liczy się w ułamku sekundy.
+Dodatkowy koszt to potrzeba cen na kolejną dobę — RCE jest publikowane dzień wcześniej.
+
+**Czy próba wrażliwości zmieniła wniosek?** Nie. Przy T_min 21,5 °C DP nadal tańszy (−36,1 %)
+i nadal 0 h poniżej T_min.
+
+**Czego nie można wnioskować z tej próby:**
+- rocznej ani miesięcznej oszczędności — to jedna doba z jednej lokalizacji;
+- skuteczności dla innych budynków — model to jeden budynek referencyjny;
+- wyniku przy prawdziwej prognozie — dane archiwalne = idealna prognoza cen i pogody,
+  więc 52 % to raczej górna granica (por. Oldewurtel i in., 2012);
+- że cała oszczędność wynika z „patrzenia na ceny” — termostat przez opóźnienie 2 h
+  spada poniżej T_min, więc jest też słabszy komfortowo; uczciwszy wariant bazowy
+  (np. termostat z wcześniejszym progiem włączenia) może dać mniejszą różnicę.
+
+**Czego brakuje do sprawdzenia:** wielu dób (np. cały sezon grzewczy z PSE i Open-Meteo),
+prognozy pogody zamiast archiwum, trzeciej reguły z `baselines.py` (Osoba 4 w `PROJEKT.md`)
+oraz siatki wrażliwości z `sensitivity.py` (Osoba 5).
+
+Obserwowana różnica dotyczy tej doby i tego modelu — to wynik symulacji, nie pomiar w domu.
 
 ## 9. Odtworzenie i użycie agenta AI
 
-_(uzupełnia Osoba 6)_
+
+**Odtworzenie** (osoba inna niż autor skryptu i wyników):
+
+| Element | Wynik                                                   |
+|---|---------------------------------------------------------|
+| Kto i kiedy | pu-ctrl, 02.11.2026                                     |
+| Środowisko | Windows, Python 3.14, `.venv`                           |
+| Kroki | świeży `git clone`, polecenia z `README.md` → sekcja Lab 4 |
+| Porównanie | `git status --short results/` → brak zmian = pliki identyczne |
+| `check_lab4.py` | [Kontrola OK (K1–K7)]                                   |
+| Wynik | zgodny                                                  |
+
+**Agent AI:** użyto agenta (Claude) do przygotowania szkicu `scripts/compare_methods.py`,
+`scripts/check_lab4.py` i tego dokumentu. Agent dostał: plik `doba-live.csv`, słownik
+danych z Lab 3 i warunki z p. 3. Sprawdzenie: ręczne przeliczenie godzin 0 i 9 oraz sumy
+kosztów (p. 7), niezależny skrypt kontroli bez importu silnika, test na celowo błędnej kopii.
+Parametrów nie zmieniano po obejrzeniu wyników.
+
