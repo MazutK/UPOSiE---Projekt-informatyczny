@@ -134,7 +134,60 @@ Brak losowania, więc brak rozrzutu między powtórzeniami; dwa uruchomienia daj
 
 ## 7. Kontrola obliczeń
 
-_(uzupełnia Osoba 5)_
+Skrypt: `scripts/check_lab4.py` (tylko biblioteka standardowa). **Nie importuje silnika ani pandas** —
+przelicza wszystko od nowa z `observations.csv` i `comparison.csv`, więc nie powtarza ewentualnego
+błędu z `scripts/compare_methods.py`. Moc grzałki czyta z `parametry.json` (1,5 kW).
+
+| Kontrola | Co sprawdza |
+|---|---|
+| K1 | struktura: kolumny obu plików, godziny 0..23 kolejno i bez powtórzeń, warianty `termostat` + `dp`, `n_godzin` = 24, te same parametry i dane |
+| K2 | decyzje u ∈ {0, 1}; `godziny_grzania` = Σu; `energia_kwh` = Σu · 1,5 kWh |
+| K3 | koszt każdej godziny = u · 1,5 kW · 1 h · cena [zł/kWh] (tolerancja 0,0001 zł) |
+| K4 | suma 24 kosztów godzinowych = `koszt_pln` w `comparison.csv` (tolerancja 0,002 zł) |
+| K5 | z kolumny temperatur: godziny < T_min, deficyt °C·h, średnia / min / max T |
+| K6 | oszczędność zł i % względem termostatu, `kryterium_spelnione` (≥ 5 % **i** nie więcej godzin < T_min) |
+| K7 | cena i pogoda w `observations.csv` zgodne z plikiem z kolumny `dane` (`data/processed/doba-live.csv`) |
+
+### Uruchomienie na wynikach Osoby 4
+
+```
+python scripts/check_lab4.py results/lab4              → Kontrola OK (K1-K7)
+python scripts/check_lab4.py results/lab4/sensitivity  → Kontrola OK (K1-K7)
+```
+
+### Ręczne przeliczenie (kalkulator)
+
+Koszt godziny = u · 1,5 kWh · cena.
+
+| Co | Obliczenie ręczne | W pliku | Zgodne? |
+|---|---|---|---|
+| Godz. 0, DP (u = 1) | 1 · 1,5 · 0,6373 = 0,95595 zł | `dp_koszt_pln` = 0,9559 | tak (różnica 0,00005 = zaokrąglenie zapisu do 4 miejsc) |
+| Godz. 9, termostat (u = 1, T = 20,83 °C < T_min, grzałka włączona od godz. 7) | 1 · 1,5 · 0,8085 = 1,21275 zł | `termostat_koszt_pln` = 1,2127 | tak (jw.) |
+| Suma, termostat (grzeje 7–16, 10 h) | Σ cen = 1,1177 + 1,0366 + 0,8085 + 0,5809 + 0,5753 + 0,5321 + 0,6045 + 0,6356 + 0,6959 + 0,8479 = 7,4350 zł/kWh; · 1,5 = **11,1525 zł** | `koszt_pln` = 11,1525 | tak |
+| Suma, DP (grzeje 0–1 i 10–13, 6 h) | Σ cen = 0,6373 + 0,6345 + 0,5809 + 0,5753 + 0,5321 + 0,6045 = 3,5646 zł/kWh; · 1,5 = **5,3469 zł** | `koszt_pln` = 5,3469 | tak |
+| Oszczędność | 11,1525 − 5,3469 = 5,8056 zł; 5,8056 / 11,1525 = **52,06 %** | 5,8056 / 52,06 | tak |
+
+Suma zaokrąglonych kosztów godzinowych termostatu daje 11,1524 zł (o 0,0001 mniej niż `koszt_pln`,
+liczony z pełnej precyzji) — dlatego K4 ma tolerancję 0,002 zł, a K3 0,0001 zł.
+
+### Test na błędnej kopii
+
+`results/lab4/*.csv` skopiowano do katalogu poza repozytorium (`~/lab4-zla-kopia/`)
+i w `observations.csv` zmieniono `dp_koszt_pln` w godzinie 0 z 0,9559 na 0,5:
+
+```
+python scripts/check_lab4.py ~/lab4-zla-kopia
+Kontrola niezaliczona (K3, K4):
+- K3: dp, godz. 0: 1 * 1.5 * 0.6373 = 0.9559 zl, w pliku 0.5
+- K4: dp: suma godzin 4.8910 zl != koszt_pln 5.3469
+```
+
+Padły dokładnie K3 (zły koszt godziny) i K4 (suma godzin ≠ koszt doby), kod wyjścia 1.
+Pozostałe kontrole przeszły, bo zmiana nie dotyka decyzji, temperatur, `comparison.csv` ani danych wejściowych.
+Skrypt wykrywa więc ręczną edycję wyniku. Pliki w `results/lab4/` nie były zmieniane.
+
+**Wniosek:** liczby w p. 6 są spójne z plikami godzinowymi i z danymi Lab 3; niezależne przeliczenie
+potwierdza koszt 11,15 zł (termostat) vs 5,35 zł (DP) i oszczędność 52,1 %.
 
 ## 8. Wnioski i ograniczenia
 
