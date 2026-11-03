@@ -22,6 +22,7 @@ class SensitivityRow:
     dp_hours_below_t_min: int
     thermostat_hours_below_t_min: int
     dp_mean_temp_c: float
+    dp_max_temp_c: float
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,7 @@ def run_sensitivity_analysis(
                 dp_hours_below_t_min=dp.hours_below(current_t_min),
                 thermostat_hours_below_t_min=thermostat.hours_below(current_t_min),
                 dp_mean_temp_c=round(dp.mean_temperature, 2),
+                dp_max_temp_c=round(max(dp.temperatures), 2),
             )
         )
 
@@ -103,10 +105,10 @@ def export_sensitivity_csv(result: SensitivityResult) -> str:
     """Eksportuje wyniki analizy wrażliwości do łańcucha CSV."""
     buf = io.StringIO()
     buf.write(
-        f"parametr_{result.parameter},dp_koszt_pln,termostat_koszt_pln,oszczednosc_pln,oszczednosc_proc,dp_godziny_grzania,termostat_godziny_grzania,dp_ponizej_tmin,termostat_ponizej_tmin,dp_srednia_temp_c\n"
+        f"parametr_{result.parameter},dp_koszt_pln,termostat_koszt_pln,oszczednosc_pln,oszczednosc_proc,dp_godziny_grzania,termostat_godziny_grzania,dp_ponizej_tmin,termostat_ponizej_tmin,dp_srednia_temp_c,dp_max_temp_c\n"
     )
     for r in result.rows:
         buf.write(
-            f"{r.value},{r.dp_cost_pln:.4f},{r.thermostat_cost_pln:.4f},{r.saving_pln:.4f},{r.saving_pct:.2f},{r.dp_heating_hours},{r.thermostat_heating_hours},{r.dp_hours_below_t_min},{r.thermostat_hours_below_t_min},{r.dp_mean_temp_c:.2f}\n"
+            f"{r.value},{r.dp_cost_pln:.4f},{r.thermostat_cost_pln:.4f},{r.saving_pln:.4f},{r.saving_pct:.2f},{r.dp_heating_hours},{r.thermostat_heating_hours},{r.dp_hours_below_t_min},{r.thermostat_hours_below_t_min},{r.dp_mean_temp_c:.2f},{r.dp_max_temp_c:.2f}\n"
         )
     return buf.getvalue()

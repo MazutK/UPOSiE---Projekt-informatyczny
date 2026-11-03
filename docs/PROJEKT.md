@@ -594,3 +594,4 @@ Dopisujemy tutaj, nie tylko ustnie. Brak wiersza = decyzja nie obowiązuje.
 | 2026-10-07 | MVP = silnik + API + widok na wbudowanych dobach                                                                        | Publiczne dane i extra metody nie blokują demo                    |
 | 2026-10-19 | wymuszenia godzin + eksport planu + kartę/ściągawkę                                                                     | Silnik już ma `overrides`; GUI i dokumentacja końcowa były dziurą |
 | 2026-10-19 | Nowe feature’y (live data, compare, sensitivity, overrides/export) = nowe katalogi, sklejenie w `App.tsx` przez Osobę 1 | Żeby nikt nie nadpisywał cudzego layoutu                          |
+| 2026-11-03 | `/api/sensitivity`: nowe pole `dp_max_temp_c` (najwyższa temperatura planu DP) w `schemas.py` i `types.ts`; GUI pokazuje je i ostrzega, gdy DP nie dochodzi do `T_max` | Przy paśmie 21,0–22,5 °C wynik nie zależy od `max_overshoot` — bez tej kolumny wyglądało to na błąd |

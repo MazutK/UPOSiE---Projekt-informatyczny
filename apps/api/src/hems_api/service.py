@@ -181,6 +181,7 @@ def sensitivity(request: SensitivityRequest) -> SensitivityResponse:
             dp_hours_below_t_min=r.dp_hours_below_t_min,
             thermostat_hours_below_t_min=r.thermostat_hours_below_t_min,
             dp_mean_temp_c=r.dp_mean_temp_c,
+            dp_max_temp_c=r.dp_max_temp_c,
         )
         for r in result.rows
     ]

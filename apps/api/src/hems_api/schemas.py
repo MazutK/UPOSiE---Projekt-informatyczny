@@ -124,6 +124,7 @@ class SensitivityRowOut(BaseModel):
     dp_hours_below_t_min: int
     thermostat_hours_below_t_min: int
     dp_mean_temp_c: float
+    dp_max_temp_c: float
 
 
 class SensitivityRequest(BaseModel):

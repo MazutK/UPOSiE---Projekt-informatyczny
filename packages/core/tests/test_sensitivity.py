@@ -40,6 +40,23 @@ def test_sensitivity_overshoot_grid():
     assert result.rows[-1].dp_cost_pln <= result.rows[0].dp_cost_pln + 1e-4
 
 
+def test_overshoot_unused_when_dp_stays_below_t_max():
+    result = run_sensitivity_analysis(
+        MODEL, INPUTS, parameter="max_overshoot", values=[0.0, 2.0], t_max=22.5
+    )
+    assert all(r.dp_max_temp_c <= 22.5 for r in result.rows)
+    assert result.rows[0].dp_cost_pln == result.rows[1].dp_cost_pln
+
+
+def test_overshoot_lowers_cost_for_narrow_band():
+    result = run_sensitivity_analysis(
+        MODEL, INPUTS, parameter="max_overshoot", values=[0.0, 1.0], t_max=21.3, t_start=21.2
+    )
+    assert result.rows[0].dp_max_temp_c <= 21.3 + 1e-9
+    assert result.rows[1].dp_max_temp_c > 21.3
+    assert result.rows[1].dp_cost_pln < result.rows[0].dp_cost_pln
+
+
 def test_export_sensitivity_csv():
     grid = [20.5, 21.0]
     result = run_sensitivity_analysis(MODEL, INPUTS, parameter="t_min", values=grid)

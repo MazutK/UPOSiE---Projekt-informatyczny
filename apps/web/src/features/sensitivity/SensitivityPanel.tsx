@@ -56,6 +56,11 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
   const rows = state?.rows ?? [];
   const error = !loading ? (state?.error ?? null) : null;
 
+  // Plan DP nie dochodzi do T_max -> zgoda na przegrzanie nie ma czego zmienić.
+  const peakTemp = Math.max(...rows.map((r) => r.dp_max_temp_c));
+  const overshootUnused =
+    !loading && parameter === "max_overshoot" && rows.length > 0 && peakTemp <= settings.t_max + 0.005;
+
   const handleExportCsv = () => {
     if (rows.length === 0) return;
 
@@ -70,6 +75,7 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
       "dp_ponizej_tmin",
       "termostat_ponizej_tmin",
       "dp_srednia_temp_c",
+      "dp_max_temp_c",
     ];
 
     const lines = [headers.join(",")];
@@ -86,6 +92,7 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
           r.dp_hours_below_t_min,
           r.thermostat_hours_below_t_min,
           r.dp_mean_temp_c.toFixed(2),
+          r.dp_max_temp_c.toFixed(2),
         ].join(",")
       );
     }
@@ -135,6 +142,13 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
 
         {loading && <p className="banner banner--info">Przeliczam analizę wrażliwości…</p>}
         {error && <p className="banner banner--error">{error}</p>}
+        {overshootUnused && (
+          <p className="banner banner--info">
+            Plan DP nie dochodzi nawet do T_max (najwyżej {peakTemp.toFixed(2)} °C przy T_max{" "}
+            {settings.t_max.toFixed(1)} °C), więc zgoda na przegrzanie nic nie zmienia — pasmo
+            komfortu już wystarcza jako zapas ciepła. Zawęź pasmo T_min–T_max, żeby zobaczyć efekt.
+          </p>
+        )}
 
         <div className="sensitivity-table-wrapper">
           <table className="sensitivity-table">
@@ -148,6 +162,7 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
                 <th>DP poniżej T_min</th>
                 <th>Termostat poniżej T_min</th>
                 <th>Śr. temp. DP</th>
+                <th>Maks. temp. DP</th>
               </tr>
             </thead>
             <tbody>
@@ -178,6 +193,7 @@ export function SensitivityPanel({ settings }: SensitivityPanelProps) {
                     </td>
                     <td>{r.thermostat_hours_below_t_min} h</td>
                     <td>{r.dp_mean_temp_c.toFixed(1)} °C</td>
+                    <td>{r.dp_max_temp_c.toFixed(2)} °C</td>
                   </tr>
                 );
               })}

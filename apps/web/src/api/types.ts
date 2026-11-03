@@ -103,6 +103,7 @@ export interface SensitivityRow {
   dp_hours_below_t_min: number;
   thermostat_hours_below_t_min: number;
   dp_mean_temp_c: number;
+  dp_max_temp_c: number;
 }
 
 export interface SensitivityRequest {
