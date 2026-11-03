@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  container-type: inline-size;
 }
 
 .overrides-grid__description {
@@ -13,13 +14,14 @@
 
 .overrides-grid__matrix {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
 }
 
-@media (min-width: 600px) {
+/* Liczba kolumn zależy od szerokości karty, nie okna — karta stoi w wąskim panelu. */
+@container (min-width: 560px) {
   .overrides-grid__matrix {
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 }
 
