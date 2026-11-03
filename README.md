@@ -89,3 +89,7 @@ Oczekiwane: termostat 11,15 zł / 4 h poniżej T_min, DP 5,35 zł / 0 h (−52,1
 wrażliwość: 11,39 zł vs 7,28 zł (−36,1 %). Po ponownym uruchomieniu `git status results/` nie pokazuje zmian.
 
 Demo z instrukcji (opcjonalnie): `python examples/lab4/compare_forecasts.py examples/lab4/data/popyt.csv examples/lab4/results/okno3 --window 3`
+
+## Projekt architektury (Lab 5)
+Granice, UC-01, kontrakt, model danych, diagramy i przegląd: [`docs/architecture.md`](docs/architecture.md).
+Decyzja o zapisie: [`docs/decisions/001-storage.md`](docs/decisions/001-storage.md). Diagramy: `docs/diagrams/`.
