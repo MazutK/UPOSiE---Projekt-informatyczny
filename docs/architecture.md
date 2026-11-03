@@ -25,50 +25,108 @@ Legenda statusu elementów: **istnieje** (jest w repo i działa) / **planowane**
 
 ## 1. Granice systemu
 
-_(uzupełnia Osoba 1 — Kacper Mazur)_
+_Osoba 1 — Kacper Mazur._
 
-- Użytkownik:
-- Systemy zewnętrzne (PSE RCE, Open-Meteo — co od nich bierzemy, w jakim formacie):
-- Zakres odpowiedzialności naszego rozwiązania:
-- Poza zakresem (z `docs/problem.md`):
+**Użytkownik:** właściciel lub najemca domu z ogrzewaniem elektrycznym (grzałka 1,5 kW)
+i taryfą dynamiczną. Jedna osoba, lokalnie, w przeglądarce. Bez kont i logowania —
+wymagania R1–R6 tego nie uzasadniają.
+
+**Systemy zewnętrzne** (poza naszą kontrolą, tylko odczyt):
+
+| System | Co bierzemy | Format wejścia | Jak trafia do nas |
+| ------ | ----------- | -------------- | ----------------- |
+| PSE — raporty OSP, RCE (`api.raporty.pse.pl/api/rce-pln`) | ceny energii dla doby | JSON, 96 kwadransów, `rce_pln` w zł/MWh, `dtime` = koniec kwadransa | średnia z 4 kwadransów → `price_pln_kwh` w zł/kWh (`data_sources/pse.py`) |
+| Open-Meteo (`api.open-meteo.com/v1/forecast`, `archive-api.open-meteo.com/v1/archive`) | pogoda dla Warszawy (52,23 N; 21,01 E) | JSON, 24 godziny, `temperature_2m` w °C, `shortwave_radiation` w W/m² | `outside_temp_c`, `solar_radiation_wm2` (`data_sources/open_meteo.py`); dziś i przyszłość → forecast, przeszłość → archive |
+
+Oba źródła są publiczne, bez klucza i opłat. Gdy nie odpowiadają, system korzysta z próbki
+`data/raw/*-sample.json` (doba 2026-10-13) i mówi o tym w komunikacie (`GET /api/live`, pole `source`).
+
+**Zakres naszego rozwiązania:**
+
+- złożenie doby wejściowej (24 h: cena, temperatura zewnętrzna, nasłonecznienie) z PSE i Open-Meteo
+  albo z wbudowanego scenariusza CSV,
+- symulacja temperatury budynku referencyjnego (`parametry.json`),
+- plan DP i plan termostatu na **tych samych** danych, koszt w zł, kWh, godziny poniżej `T_min`,
+- pokazanie wyniku w GUI i eksport planu do CSV,
+- dodatkowo: porównanie 4 metod (`/api/compare`), analiza wrażliwości (`/api/sensitivity`).
+
+**Poza zakresem** (`docs/problem.md`): sterowanie piecem na żywo, automatyka domowa, wiele
+budynków, prognozowanie cen energii (bierzemy opublikowane RCE), konta użytkowników.
 
 Diagram granic i modułów (opcjonalny): `docs/diagrams/granice.drawio` / `granice.png` (Sebastian Rączka).
 
 ### 1.1. Odpowiedzialności modułów
 
-_(uzupełnia Osoba 1 — Kacper Mazur)_
+_Osoba 1 — Kacper Mazur._
 
 | Moduł | Ścieżka | Odpowiada za | Nie odpowiada za | Status |
 | ----- | ------- | ------------ | ---------------- | ------ |
-| GUI | `apps/web` | | | istnieje |
-| API | `apps/api` | | | istnieje |
-| Silnik | `packages/core` | | | istnieje |
-| Źródła danych | `packages/core/.../data_sources/`, `scripts/prepare_data.py` | | | istnieje |
-| Kontrola danych | `scripts/check_data.py` | | | istnieje |
+| GUI | `apps/web` | zebranie ustawień (scenariusz, `T_min`, `T_max`, `T_start`, wymuszenia, data live), pilnowanie `T_min ≤ T_max` w panelu, wywołanie API, pokazanie wyniku lub komunikatu błędu, eksport planu CSV (po stronie przeglądarki) | obliczeń, walidacji zakresów, pobierania danych zewnętrznych | istnieje |
+| API | `apps/api` | walidacja żądania (typy, zakresy, pasmo, wymuszenia 0/1 — `schemas.py`), wczytanie scenariusza, wywołanie silnika, mapowanie błędów na kody HTTP 404/422/502 (`main.py`) | wzoru temperatury i algorytmu DP | istnieje |
+| Silnik | `packages/core` | model cieplny (`model.py`), plan DP (`optimizer.py`), termostat (`simulation.py`), metryki planu (`plan.py`), wczytanie CSV (`inputs.py`), godziny wymuszeń 0..23 | HTTP, pobierania danych z sieci | istnieje |
+| Źródła danych | `packages/core/.../data_sources/`, `scripts/prepare_data.py` | pobranie PSE i Open-Meteo, przesunięcie kwadransów PSE na początek okresu, agregacja do godzin, kontrola 24 godzin i wartości skończonych (`builder.py`), zapis `doba_live.csv` | decyzji o grzaniu | istnieje |
+| Kontrola danych | `scripts/check_data.py` | sprawdzenie przetworzonej doby (Lab 3) przed użyciem w porównaniu | poprawiania danych — tylko odrzuca | istnieje |
+
+Moduł odpowiedzialny za kontrolę **ciągłości doby** (24 kolejne godziny bez dziur):
+przy danych live — `data_sources/builder.py`; przy CSV z dysku — `scripts/check_data.py`.
+Samo `inputs.py` sprawdza tylko kolumny i równe długości list — patrz luka 2 w §2.4.
 
 ---
 
 ## 2. Przypadek użycia UC-01
 
-_(uzupełnia Osoba 1 — Kacper Mazur)_
+_Osoba 1 — Kacper Mazur._
 
 | Element | UC-01 — plan grzania na 24 h i porównanie z termostatem |
 | ------- | ------------------------------------------------------- |
-| Cel i wymaganie | (R1, R2, R3, R4, R6 z `docs/problem.md`) |
-| Wejście | |
-| Warunek rozpoczęcia | |
-| Przebieg | |
-| Wynik | |
-| Brak danych / błąd | |
-| Kryterium odbioru | |
+| Cel i wymaganie | Użytkownik chce wiedzieć, w których godzinach najbliższej doby grzać, żeby nie zmarznąć i zapłacić jak najmniej, oraz ile to daje względem zwykłego termostatu. R1 (plan 24 h), R2 (ceny zmieniają plan), R3 (pasmo komfortu), R4 (porównanie z termostatem), R6 (koszt w zł) |
+| Wejście | doba: scenariusz CSV albo data dla danych live (PSE + Open-Meteo); `T_min`, `T_max` [°C], `T_start` [°C], opcjonalnie `max_overshoot` [°C] i wymuszenia godzin `{h: 0\|1}` |
+| Warunek rozpoczęcia | doba ma 24 kolejne godziny z ceną, temperaturą zewnętrzną i nasłonecznieniem (skończone liczby, nasłonecznienie ≥ 0); `T_min ≤ T_max`; dostępny `parametry.json` |
+| Przebieg | wybór doby i pasma w GUI → `POST /api/optimize` → walidacja żądania → wczytanie doby i modelu → plan DP + symulacja termostatu na tych samych danych → odpowiedź JSON → karty, wykresy, tabela godzinowa |
+| Wynik | dwa harmonogramy 0/1 na 24 h z temperaturą w każdej godzinie; dla każdego: koszt [zł], energia [kWh], godziny poniżej `T_min` [h], deficyt [K·h]; oszczędność DP vs termostat [zł, %]; nazwa scenariusza i parametry, z którymi liczono |
+| Brak danych / błąd | obliczenie przerwane, komunikat mówiący, czego brakuje (np. „Brakujące godziny dla ceny: [17]”, „t_min nie może być większe niż t_max”); **bez planu i bez kosztu 0 zł** |
+| Kryterium odbioru | (1) dla `data/processed/doba-live.csv` (2026-10-13), `T_min` 21,0, `T_max` 22,5, start 21,8 wynik zgodny z Lab 4: termostat 11,15 zł / 4 h poniżej `T_min`, DP 5,35 zł / 0 h (`scripts/compare_methods.py` + `scripts/check_lab4.py`); (2) `T_min > T_max` → HTTP 422 i brak nowego planu; (3) doba bez jednej godziny → błąd, a nie plan na 23 h |
 
-Poprawny przebieg:
+### 2.1. Poprawny przebieg
 
-1.
+1. Użytkownik otwiera GUI. GUI pobiera listę dób (`GET /api/scenarios`).
+2. Użytkownik wybiera dobę: gotowy scenariusz **albo** datę w karcie „Dane publiczne” →
+   `GET /api/live?date=…` → źródła danych składają 24 h z PSE i Open-Meteo i zapisują `doba_live.csv`.
+3. Użytkownik ustawia `T_min`, `T_max`, `T_start` (i ewentualnie wymuszenia godzin).
+4. GUI wysyła `POST /api/optimize` (kontrakt w §3).
+5. API waliduje żądanie, wczytuje dobę i `parametry.json`.
+6. Silnik liczy plan DP (najpierw kara za zimno, potem koszt) i plan termostatu — te same dane i model.
+7. API zwraca 24 wiersze godzinowe i podsumowania obu planów.
+8. GUI pokazuje oszczędność, koszty, wykres temperatury, wykres ceny z godzinami grzania i tabelę;
+   użytkownik może pobrać plan jako CSV.
 
-Błędny przebieg:
+### 2.2. Błędny przebieg A — niepoprawne ustawienia
 
-1.
+1–4. Jak wyżej, ale żądanie ma `T_min > T_max` (np. wysłane z pominięciem panelu) albo wartość poza zakresem.
+5. API odrzuca żądanie przed obliczeniem: HTTP 422 z opisem w `detail`.
+6. Silnik nie jest wywoływany, nic nie jest zapisywane.
+7. GUI pokazuje komunikat w banerze.
+
+### 2.3. Błędny przebieg B — niepełna doba z danych publicznych
+
+1–2. Użytkownik wybiera datę, ale PSE albo Open-Meteo zwraca dane bez którejś godziny.
+3. Parser przerywa składanie doby: `pse.py` — „Brak danych cenowych PSE dla godziny h”,
+   `open_meteo.py` — „Oczekiwano dokładnie 24 unikalnych godzin…”, `builder.py` — „Brakujące godziny dla …”.
+4. Niepełna doba **nie trafia** do `doba_live.csv` — zapis jest dopiero po złożeniu pełnych 24 h.
+5. API przechodzi na plan awaryjny: `doba_live.csv` dostaje próbkę z `data/raw/` (2026-10-13),
+   a pole `source` + komunikat mówią, z czego liczono. Gdy próbki też brak — HTTP 502 z opisem błędu.
+6. Użytkownik widzi w karcie „Dane publiczne”, że wynik nie dotyczy wybranej daty.
+
+### 2.4. Niespójności znalezione przy opisie UC-01 (do Issues w §8)
+
+1. **Stary wynik przy błędzie.** Gdy `POST /api/optimize` zwróci błąd, `useOptimization.ts`
+   zostawia poprzedni `result`, a `App.tsx` pokazuje go razem z banerem błędu. Użytkownik widzi plan
+   policzony dla **innych** ustawień niż te w panelu. Kryterium: przy błędzie prawa kolumna nie
+   pokazuje kosztu ani planu (albo wyraźnie oznacza go jako nieaktualny).
+2. **Brak kontroli ciągłości przy wczytaniu CSV.** `HourlyInputs.from_csv` sprawdza kolumny,
+   ale nie liczbę ani ciągłość godzin — plik z godzinami 0 i 5 daje plan na 2 h bez błędu
+   (sprawdzone). Kontrola jest tylko w `scripts/check_data.py` i w `builder.py` dla danych live.
+   Kryterium: scenariusz bez godziny 0..23 → HTTP 422, nie plan.
 
 ---
 
