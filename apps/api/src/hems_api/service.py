@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 from heating_optimizer import (
@@ -17,8 +18,11 @@ from heating_optimizer import (
     simulate_thermostat,
 )
 from heating_optimizer.data_sources import (
-    fetch_live_day,
+    build_hourly_inputs,
+    fetch_open_meteo_day,
+    fetch_pse_day,
     load_live_sample,
+    load_pse_file,
     save_as_csv,
 )
 from heating_optimizer.datasets import BUNDLED_DATA_DIR
@@ -188,21 +192,38 @@ def sensitivity(request: SensitivityRequest) -> SensitivityResponse:
     )
 
 
-def get_live_day(date_str: str) -> LiveDayResponse:
-    """Pobiera dobę z API PSE + Open-Meteo lub fallbackuje na zapisaną próbkę."""
+def get_live_day(date_str: str | None = None) -> LiveDayResponse:
+    """Pobiera dobę z API PSE + Open-Meteo lub fallbackuje na zapisaną próbkę.
+
+    Bez daty bierze dzisiejszą. Gdy PSE nie odpowiada, a Open-Meteo tak, pogoda
+    zostaje z wybranej daty, a z próbki brane są tylko ceny.
+    """
+    date_str = date_str or date.today().isoformat()
     repo_root = Path(__file__).resolve().parents[4]
     target_csv = BUNDLED_DATA_DIR / "doba_live.csv"
+    raw_pse = repo_root / "data" / "raw" / "pse-rce-sample.json"
+    raw_weather = repo_root / "data" / "raw" / "open-meteo-sample.json"
 
     source = "live_api"
     message = f"Pomyślnie pobrano dane z PSE i Open-Meteo dla daty {date_str}."
 
     try:
-        inputs = fetch_live_day(date_str, timeout=3.0)
+        temps, rads = fetch_open_meteo_day(date_str, timeout=3.0)
+        try:
+            prices = fetch_pse_day(date_str, timeout=3.0)
+        except Exception:
+            if not raw_pse.is_file():
+                raise
+            prices = load_pse_file(raw_pse)
+            source = "live_weather_sample_prices"
+            message = (
+                f"Pogoda z Open-Meteo dla daty {date_str}. PSE nie odpowiada — "
+                "ceny z zapisanej próbki (2026-10-13)."
+            )
+        inputs = build_hourly_inputs(prices, temps, rads)
         save_as_csv(inputs, target_csv)
     except Exception:
         # Fallback na lokalne próbki
-        raw_pse = repo_root / "data" / "raw" / "pse-rce-sample.json"
-        raw_weather = repo_root / "data" / "raw" / "open-meteo-sample.json"
         if raw_pse.is_file() and raw_weather.is_file():
             inputs = load_live_sample(raw_pse, raw_weather)
             save_as_csv(inputs, target_csv)

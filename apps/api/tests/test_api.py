@@ -90,7 +90,39 @@ def test_sensitivity_endpoint():
     assert data["rows"][0]["value"] == 20.5
 
 
-def test_live_endpoint():
+def _fake_weather(date_str, timeout):
+    _fake_weather.date = date_str
+    return dict.fromkeys(range(24), 5.0), dict.fromkeys(range(24), 0.0)
+
+
+def _pse_down(date_str, timeout):
+    raise OSError("PSE niedostępne")
+
+
+def test_live_defaults_to_today_and_keeps_weather_when_pse_down(monkeypatch, tmp_path):
+    from datetime import date
+
+    from hems_api import service
+
+    monkeypatch.setattr(service, "BUNDLED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(service, "fetch_open_meteo_day", _fake_weather)
+    monkeypatch.setattr(service, "fetch_pse_day", _pse_down)
+
+    response = client.get("/api/live")
+    assert response.status_code == 200
+    data = response.json()
+    today = date.today().isoformat()
+    assert data["date"] == today
+    assert _fake_weather.date == today
+    assert data["source"] == "live_weather_sample_prices"
+    first_row = (tmp_path / "doba_live.csv").read_text(encoding="utf-8").splitlines()[1]
+    assert first_row.endswith(",5.00,0.0")
+
+
+def test_live_endpoint(monkeypatch, tmp_path):
+    from hems_api import service
+
+    monkeypatch.setattr(service, "BUNDLED_DATA_DIR", tmp_path)
     response = client.get("/api/live?date=2026-10-13")
     assert response.status_code == 200
     data = response.json()

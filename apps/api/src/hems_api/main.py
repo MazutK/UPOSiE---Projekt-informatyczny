@@ -72,7 +72,7 @@ def sensitivity(request: SensitivityRequest) -> SensitivityResponse:
 
 @app.get("/api/live", response_model=LiveDayResponse)
 def live(
-    date: str = Query(default="2026-10-13", pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    date: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
 ) -> LiveDayResponse:
     try:
         return service.get_live_day(date)

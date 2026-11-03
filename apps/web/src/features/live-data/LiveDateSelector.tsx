@@ -10,8 +10,15 @@ interface LiveDateSelectorProps {
   onScenarioChange: (scenario: string) => void;
 }
 
+function todayLocal(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export function LiveDateSelector({ settings, onScenarioChange }: LiveDateSelectorProps) {
-  const [date, setDate] = useState("2026-10-13");
+  const [date, setDate] = useState(todayLocal);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
