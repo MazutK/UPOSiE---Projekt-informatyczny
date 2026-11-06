@@ -1,0 +1,124 @@
+<mxfile host="Electron" modified="2026-11-06T14:30:00.000Z" agent="Antigravity" version="21.6.8" type="device">
+  <diagram id="system-boundaries" name="Granice systemu i modulow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- User Boundary -->
+        <mxCell id="u_actor" value="Użytkownik&#xa;(Właściciel / Najemca)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="50" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- System Solution Boundary -->
+        <mxCell id="system_box" value="Zakres naszego rozwiązania (System Optymalizacji Ogrzewania HEMS)" style="swimlane;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 8;fillColor=#f8f9fa;strokeColor=#4a5568;strokeWidth=2;fontStyle=1;fontSize=14;fontColor=#2d3748;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="220" y="80" width="680" height="460" as="geometry" />
+        </mxCell>
+
+        <!-- GUI -->
+        <mxCell id="gui_mod" value="&lt;b&gt;GUI (apps/web)&lt;/b&gt;&lt;br&gt;React, Vite, Tailwind&lt;br&gt;• Formularz parametrów (T_min, T_max)&lt;br&gt;• Wykresy temperatur i cen&lt;br&gt;• Eksport planu do CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;" vertex="1" parent="system_box">
+          <mxGeometry x="40" y="140" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- API -->
+        <mxCell id="api_mod" value="&lt;b&gt;API (apps/api)&lt;/b&gt;&lt;br&gt;FastAPI / Uvicorn&lt;br&gt;• POST /api/optimize&lt;br&gt;• GET /api/scenarios&lt;br&gt;• GET /api/live&lt;br&gt;• Walidacja Pydantic (422)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=12;" vertex="1" parent="system_box">
+          <mxGeometry x="260" y="140" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Core Engine -->
+        <mxCell id="core_mod" value="&lt;b&gt;Silnik (packages/core)&lt;/b&gt;&lt;br&gt;Algorytmy i model fizyczny&lt;br&gt;• Programowanie dynamiczne (DP)&lt;br&gt;• Symulacja termostatu&lt;br&gt;• Model budynku 1R1C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontSize=12;" vertex="1" parent="system_box">
+          <mxGeometry x="480" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Data Sources Module -->
+        <mxCell id="ds_mod" value="&lt;b&gt;Źródła danych&lt;/b&gt;&lt;br&gt;packages/core/data_sources/&lt;br&gt;• Integrator PSE + Open-Meteo&lt;br&gt;• Fallback na próbkę offline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;" vertex="1" parent="system_box">
+          <mxGeometry x="260" y="280" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Scripts / Data Check -->
+        <mxCell id="check_mod" value="&lt;b&gt;Kontrola jakości danych&lt;/b&gt;&lt;br&gt;scripts/check_data.py&lt;br&gt;• Weryfikacja K1–K5 (brak NaN, 24h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=1.5;fontSize=11;" vertex="1" parent="system_box">
+          <mxGeometry x="40" y="360" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- File Storage -->
+        <mxCell id="storage_mod" value="&lt;b&gt;Pamięć plikowa (Brak bazy danych)&lt;/b&gt;&lt;br&gt;• data/processed/doba-live.csv&lt;br&gt;• packages/core/.../data/parametry.json&lt;br&gt;• results/lab4/comparison.csv" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="system_box">
+          <mxGeometry x="475" y="290" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- External Systems -->
+        <mxCell id="pse_ext" value="&lt;b&gt;PSE — Raporty OSP&lt;/b&gt;&lt;br&gt;api.raporty.pse.pl&lt;br&gt;[Ceny energii RCE, 96 kwadransów]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="960" y="200" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="meteo_ext" value="&lt;b&gt;Open-Meteo API&lt;/b&gt;&lt;br&gt;api.open-meteo.com&lt;br&gt;[Prognoza / archiwum pogody 24h]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="960" y="320" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Out of scope Box -->
+        <mxCell id="out_of_scope" value="&lt;b&gt;Poza zakresem rozwiązania:&lt;/b&gt;&lt;br&gt;• Fizyczne sterowanie piecem / IoT&lt;br&gt;• Predykcja cen energii (RCE)&lt;br&gt;• Baza danych SQL/NoSQL i konta użytkowników&lt;br&gt;• Obsługa wielu budynków" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="560" width="680" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="edge_u_gui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4a5568;" edge="1" parent="1" source="u_actor" target="gui_mod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_u_gui" value="Przeglądarka HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_u_gui">
+          <mxGeometry x="-0.1" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_gui_api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4a5568;" edge="1" parent="system_box" source="gui_mod" target="api_mod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_gui_api" value="JSON / HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_gui_api">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_api_core" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4a5568;" edge="1" parent="system_box" source="api_mod" target="core_mod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_api_core" value="Wywołanie funkcji" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_api_core">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_api_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#4a5568;" edge="1" parent="system_box" source="api_mod" target="ds_mod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge_ds_pse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#b85450;" edge="1" parent="1" source="ds_mod" target="pse_ext">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_ds_pse" value="REST GET (RCE)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_ds_pse">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_ds_meteo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#b85450;" edge="1" parent="1" source="ds_mod" target="meteo_ext">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_ds_meteo" value="REST GET (Pogoda)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_ds_meteo">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_core_storage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#4a5568;" edge="1" parent="system_box" source="core_mod" target="storage_mod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_core_storage" value="Odczyt / Zapis CSV" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="edge_core_storage">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,66 @@
+sequenceDiagram
+    autonumber
+    actor U as Użytkownik
+    participant W as GUI (apps/web)
+    participant A as API (apps/api)
+    participant D as Źródła danych (data_sources)
+    participant S as Silnik (packages/core)
+
+    Note over U,W: Krok 1: Inicjalizacja widoku
+    U->>W: Otwarcie aplikacji w przeglądarce
+    W->>A: GET /api/scenarios
+    A->>S: available()
+    S-->>A: lista obiektów Scenario (doba_*)
+    A-->>W: HTTP 200 [ScenarioOut]
+    W-->>U: Wyświetlenie formularza i listy dób
+
+    opt Pobranie danych rzeczywistych (PSE + Open-Meteo)
+        U->>W: Wybór daty i kliknięcie "Pobierz dobę"
+        W->>A: GET /api/live?date=YYYY-MM-DD
+        A->>D: fetch_live_day(date)
+        alt Źródła dostępne i 24 godziny kompletne
+            D-->>A: HourlyInputs (24h) + zapis doba_live.csv
+            A-->>W: HTTP 200 LiveDayResponse (source="live_api")
+            W-->>U: Komunikat sukcesu, scenariusz = "doba_live"
+        else Błędny przebieg B: awaria sieci / brakujące godziny PSE lub Open-Meteo
+            D-->>A: Wyjątek (błąd sieci / niepełne dane)
+            Note over A: Fallback na lokalną próbkę data/raw/*-sample.json
+            A->>D: load_live_sample() -> zapis doba_live.csv
+            A-->>W: HTTP 200 LiveDayResponse (source="offline_sample", komunikat ostrzegawczy)
+            W-->>U: Wyświetlenie banera informującego o użyciu próbki offline
+        end
+    end
+
+    Note over U,W: Krok 2: Konfiguracja i wywołanie optymalizacji
+    U->>W: Ustawienie T_min, T_max, T_start (opcjonalnie overrides)
+    W->>A: POST /api/optimize (OptimizeRequest JSON)
+
+    alt Błędny przebieg A: Naruszenie pasma komfortu (np. T_min > T_max)
+        Note over A: Walidacja Pydantic (OptimizeRequest.check_band)
+        A-->>W: HTTP 422 Unprocessable Entity (detail: t_min nie może być większe niż t_max)
+        Note over A,S: Silnik NIE jest wywoływany - brak zapisu
+        W-->>U: Wyświetlenie komunikatu błędu w banerze (brak nowego planu)
+    else Przebieg poprawny: Dane wejściowe prawidłowe
+        A->>S: load_inputs(scenario)
+        S-->>A: HourlyInputs (ceny, temp_zewn, nasłonecznienie)
+        A->>S: default_model()
+        S-->>A: ThermalModel (parametry.json)
+        
+        par Obliczenie wariantów na tych samych danych
+            A->>S: find_optimal_schedule(model, inputs, comfort, overrides)
+            S-->>A: optimal (Plan DP: schedule, temperatures, cost)
+        and
+            A->>S: simulate_thermostat(model, inputs, t_min, t_max, t_start)
+            S-->>A: thermostat (Plan bazowy: schedule, temperatures, cost)
+        end
+
+        Note over A: Obliczenie różnic (saving_pln, saving_pct) i agregacja wierszy
+        A-->>W: HTTP 200 OK (OptimizeResponse JSON: rows[24], optimal, thermostat, saving)
+        W-->>U: Aktualizacja kart kosztów, wykresów temperatury/ceny i tabeli 24h
+    end
+
+    opt Eksport planu do pliku
+        U->>W: Kliknięcie "Pobierz plan godzinowy (CSV)"
+        Note over W: Złożenie CSV z OptimizeResponse.rows w pamięci przeglądarki
+        W-->>U: Pobranie pliku plan_grzania_<scenariusz>.csv
+    end

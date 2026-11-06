@@ -325,25 +325,161 @@ bezpośrednio na pliku daje inny wynik (`74a9788a…`). Wersją danych jest skr�
 
 ## 5. Przepływ danych
 
-_(uzupełnia Osoba 4 — Sebastian Rączka)_
+_Osoba 4 — Sebastian Rączka._
 
-Format przy co najmniej dwóch strzałkach; skąd odbiorca pozna datę ostatniego odświeżenia.
+Diagram przedstawia obieg danych w systemie: od pobrania surowych danych zewnętrznych (PSE i Open-Meteo), przez walidację i ujednolicenie formatu, aż po wyliczenie optymalnego planu grzania i prezentację/zapis wyników.
 
 ```mermaid
 flowchart LR
+    subgraph Zrodla["1. Źródła zewnętrzne"]
+        PSE["PSE Raporty OSP<br/>api.raporty.pse.pl"]
+        METEO["Open-Meteo API<br/>api.open-meteo.com"]
+    end
+
+    subgraph Surowe["2. Pomiary surowe"]
+        PSE_RAW["pse-rce-sample.json<br/>96 kwadransów<br/>rce_pln, dtime"]
+        MET_RAW["open-meteo-sample.json<br/>24 godziny ISO<br/>temperature_2m, shortwave_radiation"]
+    end
+
+    subgraph Przetwarzanie["3. Integracja i kontrola"]
+        PREP["scripts/prepare_data.py<br/>lub data_sources/builder.py<br/>(agregacja 4 kwadransów, /1000)"]
+        CHECK{"scripts/check_data.py<br/>Kontrola K1–K5"}
+        REJECT["Raport błędu na stderr<br/>(brak nowego wyniku, exit 1)"]
+    end
+
+    subgraph DobaPrzetworzona["4. Gotowa doba wejściowa"]
+        CSV_LIVE["data/processed/doba-live.csv<br/>lub doba_live.csv (24 wiersze)"]
+    end
+
+    subgraph ModelBudynku["Konfiguracja"]
+        PARAMS["parametry.json<br/>alpha, beta, gamma, c, delay=2h, moc=1.5kW"]
+        REQ["Żądanie użytkownika<br/>T_min, T_max, overrides"]
+    end
+
+    subgraph Silnik["5. Obliczenia optymalizacyjne"]
+        ENGINE["packages/core<br/>- find_optimal_schedule (DP)<br/>- simulate_thermostat (histereza)"]
+    end
+
+    subgraph Wyjscie["6. Prezentacja i archiwizacja"]
+        CLI_RES["results/lab4/<br/>comparison.csv<br/>observations.csv"]
+        WEB_RES["GUI (apps/web)<br/>Wykresy, karty, tabela<br/>plan_grzania.csv (eksport)"]
+    end
+
+    PSE -->|"JSON / HTTPS GET"| PSE_RAW
+    METEO -->|"JSON / HTTPS GET"| MET_RAW
+
+    PSE_RAW --> PREP
+    MET_RAW --> PREP
+
+    PREP -->|"Format CSV tymczasowy"| CHECK
+    CHECK -->|"Błąd: puste/NaN, != 24 h"| REJECT
+    CHECK -->|"Format CSV 4 kolumny:<br/>hour 0..23, price_pln_kwh (zł/kWh),<br/>outside_temp_c (°C), solar_radiation_wm2 (W/m²)"| CSV_LIVE
+
+    CSV_LIVE --> ENGINE
+    PARAMS --> ENGINE
+    REQ --> ENGINE
+
+    ENGINE -->|"Format CSV (Lab 4):<br/>comparison (14 kolumn),<br/>observations (10 kolumn)"| CLI_RES
+    ENGINE -->|"Format JSON (OptimizeResponse):<br/>rows[24], optimal, thermostat, saving"| WEB_RES
 ```
+
+### Formaty danych na połączeniach (zgodnie z wymogiem ≥ 2 strzałek z formatem):
+1. **Strzałka: `check_data.py` → `doba-live.csv`:**
+   - **Format:** CSV UTF-8 bez BOM, separator `,`, nagłówek `hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2`. Dokładnie 24 wiersze danych o indeksach 0..23, brak wartości `NaN`/`null`, nasłonecznienie $\ge 0\text{ W/m}^2$.
+2. **Strzałka: `Silnik` → `CLI results/` (`compare_methods.py`):**
+   - **Format:** dwa pliki CSV:
+     - `observations.csv` (10 kolumn: dane wejściowe + decyzje `u`, temperatury `temp_c` i koszty `koszt_pln` obu metod),
+     - `comparison.csv` (14 kolumn: `wariant`, `parametry`, `dane`, `n_godzin`, `koszt_pln`, `energia_kwh`, `godziny_grzania`, `godziny_ponizej_tmin`, `deficyt_c_h`, `srednia_temp_c`, `min_temp_c`, `max_temp_c`, `oszczednosc_pln`, `oszczednosc_proc`, `kryterium_spelnione`).
+3. **Strzałka: `Silnik` → `GUI` (`POST /api/optimize`):**
+   - **Format:** JSON `OptimizeResponse` (kontrakt §3.2) zawierający echo parametrów, tablicę 24 obiektów `rows` oraz zagregowane obiekty `optimal` i `thermostat`.
+
+### Skąd odbiorca pozna datę ostatniego odświeżenia danych:
+- **W trybie wsadowym / plikowym (Lab 3–4):**
+  1. Surowy JSON z PSE zawiera jawne pola `business_date` (data doby, np. `2026-10-13`) oraz `publication_ts` (czas publikacji kursu przez OSP).
+  2. W repozytorium wersja i data doby są zakotwiczone sumą kontrolną MD5 (`729ecf79df5d39a3ef5e9c64d8be77fe`) oraz commitem `36bf9e7` opisanym w `docs/experiment.md` (§2).
+  3. Plik fizyczny `data/processed/doba-live.csv` posiada metadane systemu plików (`LastWriteTime`).
+- **W aplikacji interaktywnej / API (`apps/api` i `apps/web`):**
+  1. Wywołanie `GET /api/live?date=YYYY-MM-DD` zwraca obiekt `LiveDayResponse` z polami `date` (żądana data doby), `source` (`"live_api"` dla świeżo pobranych danych lub `"offline_sample"` dla fallbacku) oraz czytelnym komunikatem `message`.
+  2. GUI wyświetla status oraz datę w karcie „Dane publiczne (PSE + Open-Meteo)”.
+  3. Odpowiedź optymalizacji `OptimizeResponse` powtarza identyfikator scenariusza (`scenario: "doba_live"`), a przy pobraniu pliku CSV użytkownik otrzymuje plik z nazwą `plan_grzania_<scenariusz>.csv`.
 
 ---
 
 ## 6. Diagram sekwencji UML — UC-01
 
-_(uzupełnia Osoba 4 — Sebastian Rączka)_
+_Osoba 4 — Sebastian Rączka._
 
-Uczestnicy: Użytkownik, GUI, API, Silnik (DP + termostat), źródła danych (dla `/api/live`).
-Co najmniej jedna ścieżka błędna w `alt`/`else`. Kod także w `examples/lab5/sequence.mmd`.
+Diagram przedstawia realizację przypadku użycia **UC-01** (wyznaczenie najtańszego 24-godzinnego planu grzania i porównanie z termostatem) z uwzględnieniem ścieżki pobrania danych live oraz dwóch alternatywnych ścieżek błędnych opisanych w §2.2 (Błędny przebieg A: niepoprawne parametry w żądaniu) i §2.3 (Błędny przebieg B: niedostępność lub niekompletność danych zewnętrznych).
+
+Kopia kodu diagramu znajduje się w pliku `examples/lab5/sequence.mmd`.
 
 ```mermaid
 sequenceDiagram
+    autonumber
+    actor U as Użytkownik
+    participant W as GUI (apps/web)
+    participant A as API (apps/api)
+    participant D as Źródła danych (data_sources)
+    participant S as Silnik (packages/core)
+
+    Note over U,W: Krok 1: Inicjalizacja widoku
+    U->>W: Otwarcie aplikacji w przeglądarce
+    W->>A: GET /api/scenarios
+    A->>S: available()
+    S-->>A: lista obiektów Scenario (doba_*)
+    A-->>W: HTTP 200 [ScenarioOut]
+    W-->>U: Wyświetlenie formularza i listy dób
+
+    opt Pobranie danych rzeczywistych (PSE + Open-Meteo)
+        U->>W: Wybór daty i kliknięcie "Pobierz dobę"
+        W->>A: GET /api/live?date=YYYY-MM-DD
+        A->>D: fetch_live_day(date)
+        alt Źródła dostępne i 24 godziny kompletne
+            D-->>A: HourlyInputs (24h) + zapis doba_live.csv
+            A-->>W: HTTP 200 LiveDayResponse (source="live_api")
+            W-->>U: Komunikat sukcesu, scenariusz = "doba_live"
+        else Błędny przebieg B: awaria sieci / brakujące godziny PSE lub Open-Meteo
+            D-->>A: Wyjątek (błąd sieci / niepełne dane)
+            Note over A: Fallback na lokalną próbkę data/raw/*-sample.json
+            A->>D: load_live_sample() -> zapis doba_live.csv
+            A-->>W: HTTP 200 LiveDayResponse (source="offline_sample", komunikat ostrzegawczy)
+            W-->>U: Wyświetlenie banera informującego o użyciu próbki offline
+        end
+    end
+
+    Note over U,W: Krok 2: Konfiguracja i wywołanie optymalizacji
+    U->>W: Ustawienie T_min, T_max, T_start (opcjonalnie overrides)
+    W->>A: POST /api/optimize (OptimizeRequest JSON)
+
+    alt Błędny przebieg A: Naruszenie pasma komfortu (np. T_min > T_max)
+        Note over A: Walidacja Pydantic (OptimizeRequest.check_band)
+        A-->>W: HTTP 422 Unprocessable Entity (detail: t_min nie może być większe niż t_max)
+        Note over A,S: Silnik NIE jest wywoływany - brak zapisu
+        W-->>U: Wyświetlenie komunikatu błędu w banerze (brak nowego planu)
+    else Przebieg poprawny: Dane wejściowe prawidłowe
+        A->>S: load_inputs(scenario)
+        S-->>A: HourlyInputs (ceny, temp_zewn, nasłonecznienie)
+        A->>S: default_model()
+        S-->>A: ThermalModel (parametry.json)
+        
+        par Obliczenie wariantów na tych samych danych
+            A->>S: find_optimal_schedule(model, inputs, comfort, overrides)
+            S-->>A: optimal (Plan DP: schedule, temperatures, cost)
+        and
+            A->>S: simulate_thermostat(model, inputs, t_min, t_max, t_start)
+            S-->>A: thermostat (Plan bazowy: schedule, temperatures, cost)
+        end
+
+        Note over A: Obliczenie różnic (saving_pln, saving_pct) i agregacja wierszy
+        A-->>W: HTTP 200 OK (OptimizeResponse JSON: rows[24], optimal, thermostat, saving)
+        W-->>U: Aktualizacja kart kosztów, wykresów temperatury/ceny i tabeli 24h
+    end
+
+    opt Eksport planu do pliku
+        U->>W: Kliknięcie "Pobierz plan godzinowy (CSV)"
+        Note over W: Złożenie CSV z OptimizeResponse.rows w pamięci przeglądarki
+        W-->>U: Pobranie pliku plan_grzania_<scenariusz>.csv
+    end
 ```
 
 ---
