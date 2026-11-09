@@ -113,9 +113,20 @@ _Osoba 1 — Kacper Mazur._
 3. Parser przerywa składanie doby: `pse.py` — „Brak danych cenowych PSE dla godziny h”,
    `open_meteo.py` — „Oczekiwano dokładnie 24 unikalnych godzin…”, `builder.py` — „Brakujące godziny dla …”.
 4. Niepełna doba **nie trafia** do `doba_live.csv` — zapis jest dopiero po złożeniu pełnych 24 h.
-5. API przechodzi na plan awaryjny: `doba_live.csv` dostaje próbkę z `data/raw/` (2026-10-13),
-   a pole `source` + komunikat mówią, z czego liczono. Gdy próbki też brak — HTTP 502 z opisem błędu.
-6. Użytkownik widzi w karcie „Dane publiczne”, że wynik nie dotyczy wybranej daty.
+5. API przechodzi na plan awaryjny (`service.get_live_day`). Pole `source` i komunikat mówią, z czego liczono
+   _(uzupełnione w przeglądzie, §8.3 N1 — sprawdzone na kodzie z wyłączoną siecią)_:
+
+   | Sytuacja | `source` | Co trafia do `doba_live.csv` |
+   | -------- | -------- | ---------------------------- |
+   | PSE i Open-Meteo odpowiadają, 24 h kompletne | `live_api` | doba z wybranej daty |
+   | Open-Meteo odpowiada, PSE nie (błąd sieci albo niepełna doba) | `live_weather_sample_prices` | **doba mieszana**: pogoda z wybranej daty + ceny z próbki 2026-10-13 |
+   | Open-Meteo nie odpowiada albo pogoda niepełna (PSE nie jest wtedy pytane) | `offline_sample` | cała próbka z `data/raw/` (2026-10-13) |
+   | jak wyżej i brak plików próbki w `data/raw/` | `cached_bundled` | nic — zostaje poprzedni `doba_live.csv` z nieznanej daty |
+   | jak wyżej i brak `doba_live.csv` | — | nic; HTTP 502 `Błąd pobierania danych live: …` |
+
+6. Użytkownik widzi komunikat w karcie „Dane publiczne”. Przy `offline_sample` wynik nie dotyczy wybranej
+   daty, przy `live_weather_sample_prices` dotyczy jej tylko pogoda, a przy `cached_bundled` komunikat
+   podaje wybraną datę, choć plik może być z innej — do poprawy w kodzie (Issue P-01, §8.4).
 
 ### 2.4. Niespójności znalezione przy opisie UC-01 (do Issues w §8)
 
@@ -379,7 +390,7 @@ flowchart LR
     PARAMS --> ENGINE
     REQ --> ENGINE
 
-    ENGINE -->|"Format CSV (Lab 4):<br/>comparison (14 kolumn),<br/>observations (10 kolumn)"| CLI_RES
+    ENGINE -->|"Format CSV (Lab 4):<br/>comparison (15 kolumn),<br/>observations (10 kolumn)"| CLI_RES
     ENGINE -->|"Format JSON (OptimizeResponse):<br/>rows[24], optimal, thermostat, saving"| WEB_RES
 ```
 
@@ -389,7 +400,7 @@ flowchart LR
 2. **Strzałka: `Silnik` → `CLI results/` (`compare_methods.py`):**
    - **Format:** dwa pliki CSV:
      - `observations.csv` (10 kolumn: dane wejściowe + decyzje `u`, temperatury `temp_c` i koszty `koszt_pln` obu metod),
-     - `comparison.csv` (14 kolumn: `wariant`, `parametry`, `dane`, `n_godzin`, `koszt_pln`, `energia_kwh`, `godziny_grzania`, `godziny_ponizej_tmin`, `deficyt_c_h`, `srednia_temp_c`, `min_temp_c`, `max_temp_c`, `oszczednosc_pln`, `oszczednosc_proc`, `kryterium_spelnione`).
+     - `comparison.csv` (15 kolumn: `wariant`, `parametry`, `dane`, `n_godzin`, `koszt_pln`, `energia_kwh`, `godziny_grzania`, `godziny_ponizej_tmin`, `deficyt_c_h`, `srednia_temp_c`, `min_temp_c`, `max_temp_c`, `oszczednosc_pln`, `oszczednosc_proc`, `kryterium_spelnione`).
 3. **Strzałka: `Silnik` → `GUI` (`POST /api/optimize`):**
    - **Format:** JSON `OptimizeResponse` (kontrakt §3.2) zawierający echo parametrów, tablicę 24 obiektów `rows` oraz zagregowane obiekty `optimal` i `thermostat`.
 
@@ -539,23 +550,60 @@ Każdy wiersz = jedno Issue. Właściciel to propozycja — potwierdza ją Sebas
 
 ## 8. Przegląd projektu
 
-_(uzupełnia Osoba 6 — Sebastian Król)_
+_Osoba 6 — Sebastian Król. Stan na commit `200d8b4` (2026-11-10)._
 
-Prześledzić UC-01 od wejścia do wyniku tylko z tej dokumentacji.
+Metoda: najpierw UC-01 przeczytany **tylko z §1–§7** i spisane: wejście, wynik, moduł, zachowanie przy błędzie.
+Potem każde twierdzenie porównane z kodem i sprawdzone na działającym kodzie (`service.optimize`,
+`service.get_live_day` i walidacja `schemas.py` wywołane bezpośrednio, z podmienionymi funkcjami pobierania
+zamiast sieci). Nie uruchamiano serwera HTTP — mapowanie wyjątków na kody (404/422/502) przeczytane z `main.py`.
+
+### 8.1. UC-01 z samej dokumentacji
+
+| Pytanie | Odpowiedź z dokumentacji | Gdzie | Zgodne z kodem? |
+| ------- | ------------------------ | ----- | --------------- |
+| Wejście | doba (scenariusz CSV albo data live) + `t_min`, `t_max`, `t_start`, `max_overshoot`, `overrides` | §2, §3.1 | tak — `OptimizeRequest` w `schemas.py` = `types.ts` |
+| Wynik | `rows[24]` + `optimal` / `thermostat` (zł, kWh, h < `T_min`, deficyt) + `saving_pln`, `saving_pct` | §2, §3.2 | tak — dla `data/processed/doba-live.csv`: termostat 11,1525 zł / 4 h, DP 5,3469 zł / 0 h, oszczędność 52,06 % = Lab 4 (kryterium 1) |
+| Moduł odpowiedzialny | obliczenie: silnik (`find_optimal_schedule`, `simulate_thermostat`); walidacja: API (`schemas.py`); doba live: `data_sources/` + `service.get_live_day`; pokazanie: GUI | §1.1, §6 | tak |
+| Błąd A: `T_min > T_max` | HTTP 422, silnik niewywoływany | §2.2, §3.3 | tak — `check_band`: „t_min nie może być większe niż t_max” (kryterium 2) |
+| Błąd B: niepełna doba live | plan awaryjny z próbką; 502, gdy brak próbki | §2.3 | **częściowo** — kod ma 4 warianty `source` (N1); §2.3 poprawiony |
+| Brak godziny w CSV doby | błąd, nie plan na 23 h | §2 (kryterium 3) | **nie** — plik z godzinami 0 i 5 daje plan na 2 h i koszt DP 0 zł; luka znana (§2.4 p. 2) → Z-01 |
+
+### 8.2. Zgodność dokumentacji z kodem
 
 | Sprawdzenie | Wynik | Uwagi |
 | ----------- | ----- | ----- |
-| Nazwy pól zgodne z Lab 3 (`docs/data-dictionary.md`) | | |
-| Metody zgodne z Lab 4 (`docs/experiment.md`) | | |
-| Elementy diagramów zgodne z kodem | | |
-| Da się wskazać wejście, wynik, moduł i zachowanie przy błędzie | | |
+| Nazwy pól zgodne z Lab 3 (`docs/data-dictionary.md`) | zgodne | 4 kolumny doby identyczne w `data-dictionary.md`, `inputs.CSV_COLUMNS`, `prepare_data.py`, `builder.save_as_csv`, `check_data.py`, `HourRow` (`schemas.py` / `types.ts`) i `ExportPlanButton.tsx`. Pola surowe (`rce_pln`, `dtime`, `period`, `business_date`; `hourly.time`, `temperature_2m`, `shortwave_radiation`) zgodne z `pse.py`, `open_meteo.py` i próbkami w `data/raw/`; zł/MWh → `/1000` → zł/kWh w obu ścieżkach |
+| Metody zgodne z Lab 4 (`docs/experiment.md`) | zgodne | termostat `thermostat_decision`: T ≤ `T_min` → 1, T ≥ `T_max` → 0, inaczej poprzedni stan (= §3); DP: koszt leksykograficzny (kara za zimno, potem zł), siatka 0,05 °C `STATE_TEMP_RESOLUTION` (= §4). `/api/optimize` woła te same funkcje co `compare_methods.py`, wynik doby 2026-10-13 identyczny z `results/lab4/comparison.csv`. Różnica tylko przy wymuszeniach: API podaje `overrides` wyłącznie do DP (znane, Z-05) |
+| Elementy diagramów zgodne z kodem | częściowo | sekwencja §6: `available`, `load_inputs`, `default_model`, `find_optimal_schedule`, `simulate_thermostat`, `check_band` → 422, nazwa pliku eksportu i etykiety przycisków zgodne; `examples/lab5/sequence.mmd` = kopia z §6. Niezgodne: N3–N5 |
+| Da się wskazać wejście, wynik, moduł i zachowanie przy błędzie | tak (po poprawce §2.3) | przed poprawką opis błędu B pomijał dobę mieszaną i użycie starej doby (N1) |
 
-Znalezione niespójności i poprawki:
+### 8.3. Znalezione niespójności i poprawki
 
--
+| # | Gdzie | Niespójność | Działanie |
+| - | ----- | ----------- | --------- |
+| N1 | §2.3 ↔ `service.get_live_day` | Dokumentacja znała tylko `live_api` i `offline_sample` oraz 502 przy braku próbki. Kod ma jeszcze `live_weather_sample_prices` (pogoda z wybranej daty + ceny z 2026-10-13) i `cached_bundled` (zostaje poprzedni `doba_live.csv`, a komunikat podaje wybraną datę). 502 dopiero, gdy brak i próbek, i pliku | **poprawione** w §2.3 (tabela wariantów); zachowanie kodu → P-01 |
+| N2 | §5 | „`comparison.csv` (14 kolumn)” — plik ma 15 kolumn (lista obok też ma 15; tyle sprawdza `check_lab4.py`) | **poprawione** w §5 (diagram i opis) |
+| N3 | §6 i `examples/lab5/sequence.mmd` | `A->>D: fetch_live_day(date)` — API tej funkcji nie woła (jest w `data_sources/__init__.py`, nieużywana); `get_live_day` woła `fetch_open_meteo_day` → `fetch_pse_day` → `build_hourly_inputs` → `save_as_csv`. Brak gałęzi `live_weather_sample_prices` i `cached_bundled`. Informacja o próbce to status w karcie „Dane publiczne”, nie baner. W wywołaniu `find_optimal_schedule` brak `t_start` | zgłoszone autorowi → P-02 |
+| N4 | §5 (przepływ) i `granice.drawio` / `.png` | Ścieżka live narysowana przez `scripts/check_data.py` („Kontrola K1–K5”). W kodzie dobę live sprawdza `builder.py` (tak jak w §1.1), a `check_data.py` dotyczy tylko `data/processed/` i ma 6 kontroli bez numerów (K1–K7 są w `check_lab4.py`) | zgłoszone autorowi → P-02 |
+| N5 | `granice.drawio` / `.png` | GUI opisane jako „React, Vite, Tailwind” — Tailwind nie ma w `apps/web/package.json`, style są w plikach `.css` | zgłoszone autorowi → P-02 |
 
-Issues (cel, kryterium odbioru, właściciel):
+### 8.4. Issues
 
-| Issue | Cel | Właściciel |
-| ----- | --- | ---------- |
-| | | |
+Założone na GitHubie z prefiksem `[Lab 5]`. Właściciele Z-01 … Z-10 — propozycje z §7.2, potwierdzone.
+Kryteria odbioru Z-01 … Z-10 jak w §7.2 (skopiowane do treści Issues).
+
+| Issue | Cel | Kryterium odbioru | Właściciel |
+| ----- | --- | ----------------- | ---------- |
+| P-00 | Wynik przeglądu architektury Lab 5 | Issue opisuje wynik §8.1–§8.3 i linkuje pozostałe Issues; zamykane, gdy P-01 i P-02 są zamknięte | Sebastian Król |
+| Z-01 | Kontrola 24 kolejnych godzin przy wczytaniu CSV doby | jak w §7.2 | Kacper Mazur |
+| Z-02 | GUI nie pokazuje starego planu po błędzie | jak w §7.2 | Kacper Mazur |
+| Z-03 | `NaN` w żądaniu daje 422 zamiast 500 | jak w §7.2 (potwierdzone: walidacja odrzuca, ale komunikat z `NaN` nie daje się zapisać jako JSON) | Karol Brzozowski |
+| Z-04 | Zakresy dla `model_params` | jak w §7.2 | Karol Brzozowski |
+| Z-05 | Symetryczne porównanie przy wymuszeniach | jak w §7.2 | Sebastian Rączka |
+| Z-06 | Wersja danych w wyniku porównania | jak w §7.2 | Patryk Uchman |
+| Z-07 | Brak cichego nadpisania wyników | jak w §7.2 | Oskar Wysocki |
+| Z-08 | Data i źródło doby live zapisane obok pliku | jak w §7.2 | Oskar Wysocki |
+| Z-09 | Doba live poza śledzonym katalogiem, zapis atomowy | jak w §7.2 | Oskar Wysocki |
+| Z-10 | Kontekst w eksporcie planu | jak w §7.2 | Sebastian Król |
+| P-01 | Doba live nie miesza dni i nie przypisuje starej doby wybranej dacie | przy błędzie PSE i działającym Open-Meteo API nie składa doby z pogody jednej daty i cen innej (cała próbka jako `offline_sample` albo 502); przy `cached_bundled` komunikat nie podaje wybranej daty jako daty danych; test w `test_api.py` z podmienionymi `fetch_*` (bez sieci) | Oskar Wysocki (ten sam kod co Z-08, Z-09) |
+| P-02 | Diagramy §5, §6 i `granice.drawio` zgodne z kodem | §6 i `examples/lab5/sequence.mmd` (identyczne) pokazują faktyczne wywołania `get_live_day` i 4 wartości `source`; przepływ §5 i `granice.drawio` + `.png` nie prowadzą ścieżki live przez `check_data.py` i nie używają „K1–K5”; bez „Tailwind” | Sebastian Rączka |
