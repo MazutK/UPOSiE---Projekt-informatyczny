@@ -486,14 +486,54 @@ sequenceDiagram
 
 ## 7. Co istnieje, co planowane, potrzebne zmiany
 
-_(uzupełnia Osoba 5 — Oskar Wysocki)_
+_Osoba 5 — Oskar Wysocki._
 
-Decyzja architektoniczna: `docs/decisions/001-<temat>.md` (np. `001-storage.md` — pliki vs SQLite,
-albo `001-api.md` — lokalny moduł vs osobna usługa API).
+Decyzja architektoniczna: [`docs/decisions/001-storage.md`](decisions/001-storage.md) —
+**pliki CSV/JSON w repo zamiast SQLite** (alternatywa, koszt i warunek ponownego rozważenia w ADR).
+Z decyzji wynikają zmiany Z-06 … Z-09 poniżej.
 
-| Element | Status (istnieje / planowane) | Potrzebna zmiana | Właściciel |
-| ------- | ----------------------------- | ---------------- | ---------- |
-| | | | |
+### 7.1. Elementy istniejące
+
+Stan na commit `b47f4e6` (2026-11-09). „Istnieje” = jest w repo i działa (testy `pytest` / sprawdzenie ręczne).
+
+| Element | Ścieżka | Status | Skąd | Potrzebna zmiana |
+| ------- | ------- | ------ | ---- | ---------------- |
+| GUI | `apps/web` (panel ustawień, wykresy, tabela, porównanie metod, wrażliwość, wymuszenia, dane live, eksport CSV) | istnieje | Lab 4 + rozszerzenia | Z-02, Z-05, Z-10 |
+| API — `GET /api/health`, `GET /api/scenarios` | `apps/api/src/hems_api/main.py` | istnieje | Lab 4 | — |
+| API — `POST /api/optimize` (UC-01) | `main.py`, `schemas.py`, `service.py` | istnieje | Lab 4 | Z-03, Z-04 |
+| API — `POST /api/compare`, `POST /api/sensitivity` | `main.py`, `service.py` | istnieje | rozszerzenia | — |
+| API — `GET /api/live` | `main.py`, `service.get_live_day` | istnieje | rozszerzenia | Z-08, Z-09 |
+| Silnik: model cieplny, DP, termostat, metryki | `packages/core/src/heating_optimizer/` (`model.py`, `optimizer.py`, `simulation.py`, `plan.py`) | istnieje | Lab 3–4 | — |
+| Silnik: wczytanie CSV doby | `inputs.py` (`HourlyInputs.from_csv`) | istnieje | Lab 3 | Z-01 |
+| Silnik: metody bazowe, wrażliwość | `baselines.py`, `sensitivity.py` | istnieje | rozszerzenia | — |
+| Źródła danych PSE / Open-Meteo | `data_sources/` (`pse.py`, `open_meteo.py`, `builder.py`) | istnieje | rozszerzenia | Z-08, Z-09 |
+| Przygotowanie i kontrola doby | `scripts/prepare_data.py`, `scripts/check_data.py` | istnieje | Lab 3 | — |
+| Porównanie metod i jego kontrola | `scripts/compare_methods.py`, `scripts/check_lab4.py` | istnieje | Lab 4 | Z-06, Z-07 |
+| Surowe próbki źródeł | `data/raw/pse-rce-sample.json`, `data/raw/open-meteo-sample.json` | istnieje | Lab 3 | — |
+| Doba przetworzona | `data/processed/doba-live.csv` (MD5 `729ecf79…`) | istnieje | Lab 3 | — |
+| Doby scenariuszy, parametry budynku | `packages/core/.../data/doba_*.csv`, `parametry.json` | istnieje | Lab 3 | — |
+| Wyniki porównania | `results/lab4/`, `results/lab4/sensitivity/` | istnieje | Lab 4 | Z-06 |
+| Testy | `packages/core/tests/`, `apps/api/tests/` | istnieje | Lab 3–4 | do każdej zmiany test odbioru |
+| Uruchomienie w kontenerach | `docker-compose.yml`, `docker/` | istnieje | Lab 4 | — |
+| Dokumentacja architektury, diagramy | `docs/architecture.md`, `docs/diagrams/granice.*`, `examples/lab5/sequence.mmd` | istnieje | Lab 5 | — |
+| Baza danych | — | **nie planujemy** | — | ADR-001 (warunki powrotu do decyzji) |
+
+### 7.2. Elementy planowane — potrzebne zmiany (do zamiany na Issues w §8)
+
+Każdy wiersz = jedno Issue. Właściciel to propozycja — potwierdza ją Sebastian Król przy zakładaniu Issues.
+
+| ID | Cel (tytuł Issue) | Kryterium odbioru | Moduł | Źródło | Właściciel |
+| -- | ----------------- | ----------------- | ----- | ------ | ---------- |
+| Z-01 | Kontrola 24 kolejnych godzin przy wczytaniu CSV doby | scenariusz bez którejś godziny 0..23 albo z duplikatem → `ValueError` w `from_csv` i HTTP 422 w `/api/optimize`, nie plan; test w `test_api.py` | silnik (`inputs.py`) | §2.4 luka 2 | Kacper Mazur |
+| Z-02 | GUI nie pokazuje starego planu po błędzie | po odpowiedzi 4xx/5xx prawa kolumna nie pokazuje kosztu ani planu poprzednich ustawień (albo oznacza go „nieaktualny”) | GUI (`useOptimization.ts`, `App.tsx`) | §2.4 luka 1 | Kacper Mazur |
+| Z-03 | `NaN` w żądaniu daje 422 zamiast 500 | `{"t_start": NaN}` → HTTP 422 z `detail`; test w `test_api.py` | API (`main.py` / `schemas.py`) | §3.5 luka 1 | Karol Brzozowski |
+| Z-04 | Zakresy dla `model_params` | `alpha` / `beta` ≤ 0 albo `heater_power_kw` ≤ 0 → HTTP 422; test | API (`schemas.py`) | §3.5 luka 2 | Karol Brzozowski |
+| Z-05 | Symetryczne porównanie przy wymuszeniach | GUI przy aktywnych wymuszeniach pokazuje informację, że termostat ich nie uwzględnia (albo wymuszenia trafiają do obu planów) | GUI / API | §3.5 luka 3 | Sebastian Rączka |
+| Z-06 | Wersja danych w wyniku porównania | `comparison.csv` ma kolumny `dane_md5` i `data_uruchomienia`; `check_lab4.py` sprawdza zgodność MD5 z plikiem z kolumny `dane` | skrypty (`compare_methods.py`, `check_lab4.py`) | §4.4 brak 1, ADR-001 | Patryk Uchman |
+| Z-07 | Brak cichego nadpisania wyników | `compare_methods.py` odmawia zapisu do niepustego katalogu (kod wyjścia ≠ 0, komunikat), chyba że podano `--overwrite` | skrypty (`compare_methods.py`) | §4.4 brak 4, ADR-001 | Oskar Wysocki |
+| Z-08 | Data i źródło doby live zapisane obok pliku | `GET /api/live` zapisuje `doba_live.meta.json` (`date`, `source`, `fetched_at`); GUI i `/api/scenarios` pokazują datę doby live | źródła danych, API | §4.4 brak 2, §3.4, ADR-001 | Oskar Wysocki |
+| Z-09 | Doba live poza śledzonym katalogiem, zapis atomowy | `GET /api/live` nie zmienia `git status` (zapis do `data-local/`, który jest w `.gitignore`); zapis przez plik tymczasowy + `os.replace` | źródła danych (`builder.save_as_csv`), API | ADR-001 konsekwencja | Oskar Wysocki |
+| Z-10 | Kontekst w eksporcie planu | plik CSV z GUI ma w nazwie lub nagłówku scenariusz, `T_min`, `T_max`, `T_start` i datę doby | GUI (`ExportPlanButton.tsx`) | §4.4 brak 3 | Sebastian Król |
 
 ---
 
