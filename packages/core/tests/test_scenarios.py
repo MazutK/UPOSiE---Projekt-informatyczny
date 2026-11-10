@@ -75,6 +75,12 @@ def test_cli_runs_and_writes_csv(tmp_path, capsys):
     assert len(out.read_text(encoding="utf-8").strip().splitlines()) == 25
 
 
+def test_cli_creates_missing_output_dir(tmp_path):
+    out = tmp_path / "wyniki" / "plan.csv"
+    assert cli.main(["--data", str(DATA / "doba_mroz.csv"), "--out", str(out)]) == 0
+    assert out.is_file()
+
+
 def test_cli_refuses_to_overwrite_existing_result(tmp_path, capsys):
     out = tmp_path / "wyniki.csv"
     out.write_text("stary wynik", encoding="utf-8")
