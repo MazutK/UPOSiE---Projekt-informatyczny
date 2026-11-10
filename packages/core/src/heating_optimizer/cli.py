@@ -91,6 +91,7 @@ def format_summary(optimal: Plan, thermostat: Plan, t_min: float) -> str:
 
 
 def write_csv(path: Path, inputs: HourlyInputs, optimal: Plan, thermostat: Plan) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     # "x" = tylko nowy plik: istniejący wynik nie zostanie po cichu nadpisany.
     with open(path, "x", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
