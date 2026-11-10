@@ -80,6 +80,13 @@ export function OverridesGrid({ settings, disabled, onChange }: OverridesGridPro
             </button>
           )}
         </div>
+
+        {count > 0 && (
+          <p className="overrides-grid__notice" role="note">
+            Wymuszenia dotyczą tylko planu optymalizatora. Termostat (baza porównania) ich nie
+            uwzględnia, więc oszczędność jest liczona przy różnych warunkach dla obu planów.
+          </p>
+        )}
       </div>
     </Card>
   );
