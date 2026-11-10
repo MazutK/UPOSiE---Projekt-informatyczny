@@ -118,3 +118,14 @@
 .overrides-grid__reset:hover {
   background: color-mix(in srgb, var(--border) 70%, transparent);
 }
+
+/* Z-05: informacja, że termostat nie uwzględnia wymuszeń */
+.overrides-grid__notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warning, #d97706);
+  background: color-mix(in srgb, var(--warning, #d97706) 12%, transparent);
+  color: var(--text);
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
