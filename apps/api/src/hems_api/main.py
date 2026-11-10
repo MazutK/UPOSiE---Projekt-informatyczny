@@ -1,7 +1,13 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Query
+import math
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from . import service
 from .schemas import (
@@ -28,6 +34,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _json_safe(value: Any) -> Any:
+    """NaN/Infinity nie da się zapisać w JSON — zamieniamy je na tekst."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Z-03: ten sam kształt co domyślny błąd FastAPI (422, lista w `detail`),
+    ale bez wywrotki serializacji, gdy żądanie zawiera NaN."""
+    return JSONResponse(status_code=422, content={"detail": _json_safe(jsonable_encoder(exc.errors()))})
 
 
 @app.get("/api/health")
