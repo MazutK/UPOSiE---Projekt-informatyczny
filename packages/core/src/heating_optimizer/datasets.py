@@ -70,8 +70,12 @@ def resolve(name: str) -> Path:
     raise FileNotFoundError(f"nieznany scenariusz '{name}'; dostępne: {known}")
 
 
+HOURS_PER_DAY = 24
+
+
 def load_inputs(name: str) -> HourlyInputs:
-    return HourlyInputs.from_csv(resolve(name))
+    """Doba scenariusza: dokładnie 24 kolejne godziny (UC-01, warunek rozpoczęcia)."""
+    return HourlyInputs.from_csv(resolve(name), expected_hours=HOURS_PER_DAY)
 
 
 def default_model() -> ThermalModel:
