@@ -119,14 +119,17 @@ _Osoba 1 — Kacper Mazur._
    | Sytuacja | `source` | Co trafia do `doba_live.csv` |
    | -------- | -------- | ---------------------------- |
    | PSE i Open-Meteo odpowiadają, 24 h kompletne | `live_api` | doba z wybranej daty |
-   | Open-Meteo odpowiada, PSE nie (błąd sieci albo niepełna doba) | `live_weather_sample_prices` | **doba mieszana**: pogoda z wybranej daty + ceny z próbki 2026-10-13 |
-   | Open-Meteo nie odpowiada albo pogoda niepełna (PSE nie jest wtedy pytane) | `offline_sample` | cała próbka z `data/raw/` (2026-10-13) |
-   | jak wyżej i brak plików próbki w `data/raw/` | `cached_bundled` | nic — zostaje poprzedni `doba_live.csv` z nieznanej daty |
+   | PSE albo Open-Meteo nie odpowiada lub zwraca niepełną dobę | `offline_sample` | cała próbka z `data/raw/` (2026-10-13); komunikat: „wynik NIE dotyczy wybranej daty” |
+   | jak wyżej i brak plików próbki w `data/raw/` | `cached_bundled` | nic — zostaje poprzednia doba; komunikat podaje jej datę z `doba_live.meta.json` albo „nieznana data” |
    | jak wyżej i brak `doba_live.csv` | — | nic; HTTP 502 `Błąd pobierania danych live: …` |
 
-6. Użytkownik widzi komunikat w karcie „Dane publiczne”. Przy `offline_sample` wynik nie dotyczy wybranej
-   daty, przy `live_weather_sample_prices` dotyczy jej tylko pogoda, a przy `cached_bundled` komunikat
-   podaje wybraną datę, choć plik może być z innej — do poprawy w kodzie (Issue P-01, §8.4).
+   _Lab 6 (P-01, Z-08, Z-09, Oskar Wysocki):_ doba mieszana (`live_weather_sample_prices`) została usunięta.
+   Doba live i plik `doba_live.meta.json` (`requested_date`, `data_date`, `source`, `fetched_at`) są
+   zapisywane atomowo (plik tymczasowy + `os.replace`) do `data-local/` (zmienna `HEMS_LIVE_DIR`,
+   katalog w `.gitignore`), więc pobranie doby nie zmienia `git status`. `GET /api/scenarios` pokazuje
+   datę doby live w opisie scenariusza.
+
+6. Użytkownik widzi komunikat w karcie „Dane publiczne” — zawsze z datą, z której faktycznie są dane.
 
 ### 2.4. Niespójności znalezione przy opisie UC-01 (do Issues w §8)
 
