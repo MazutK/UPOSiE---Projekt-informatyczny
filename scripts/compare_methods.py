@@ -4,6 +4,9 @@ Uruchomienie (z katalogu repozytorium):
     python scripts/compare_methods.py data/processed/doba-live.csv results/lab4
     python scripts/compare_methods.py data/processed/doba-live.csv results/lab4/sensitivity --t-min 21.5
 
+Lab 6: wynik ma wersje danych (dane_md5) i date uruchomienia (Z-06), a skrypt
+odmawia nadpisania istniejacych wynikow bez --overwrite (Z-07).
+
 Skrypt nie zmienia silnika. Wola istniejace funkcje z packages/core:
 simulate_thermostat (bazowy) i find_optimal_schedule (metoda).
 Brak losowania, wiec ziarno nie jest potrzebne.
@@ -13,8 +16,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import math
+import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 try:
@@ -31,6 +37,26 @@ from heating_optimizer import (
 )
 
 EXPECTED_COLUMNS = ["hour", "price_pln_kwh", "outside_temp_c", "solar_radiation_wm2"]
+RESULT_FILES = ("observations.csv", "comparison.csv")
+
+
+def data_md5(path: Path) -> str:
+    """MD5 pliku danych z koncami linii LF - taki sam jak wersja w repo (Z-06).
+
+    Na Windows z core.autocrlf=true plik na dysku moze miec CRLF; bez normalizacji
+    skrot zalezalby od systemu, a nie od tresci danych.
+    """
+    return hashlib.md5(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def write_csv_atomic(destination: Path, records: list[dict]) -> None:
+    """Zapis przez plik tymczasowy: przerwanie nie zostawia polowy wyniku."""
+    tmp = destination.with_name(f".{destination.name}.tmp")
+    with tmp.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(records[0]))
+        writer.writeheader()
+        writer.writerows(records)
+    os.replace(tmp, destination)
 
 
 def check_input(path: Path) -> None:
@@ -63,9 +89,23 @@ def main() -> None:
         default=5.0,
         help="kryterium praktyczne: minimalna oszczednosc w %% kosztu termostatu",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="pozwol nadpisac istniejace observations.csv / comparison.csv w katalogu wynikow",
+    )
     args = parser.parse_args()
 
+    existing = [name for name in RESULT_FILES if (args.output / name).exists()]
+    if existing and not args.overwrite:
+        raise SystemExit(
+            f"Katalog {args.output} ma juz wyniki ({', '.join(existing)}). "
+            "Podaj nowy katalog albo dodaj --overwrite."
+        )
+
     check_input(args.input)
+    version = data_md5(args.input)
+    run_at = datetime.now().astimezone().isoformat(timespec="seconds")
     inputs = HourlyInputs.from_csv(args.input)
     model = default_model()
     comfort = ComfortBand(t_min=args.t_min, t_max=args.t_max, max_overshoot=args.max_overshoot)
@@ -119,6 +159,8 @@ def main() -> None:
                     "-" if variant == "termostat"
                     else str(saving_pct >= args.min_saving_pct and not_colder).lower()
                 ),
+                "dane_md5": version,
+                "data_uruchomienia": run_at,
             }
         )
 
@@ -130,10 +172,7 @@ def main() -> None:
         destination = args.output / name
         if destination.resolve() == args.input.resolve():
             raise SystemExit("Wynik nie moze nadpisac pliku wejsciowego")
-        with destination.open("w", encoding="utf-8", newline="") as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(records[0]))
-            writer.writeheader()
-            writer.writerows(records)
+        write_csv_atomic(destination, records)
 
     for row in comparison:
         print(

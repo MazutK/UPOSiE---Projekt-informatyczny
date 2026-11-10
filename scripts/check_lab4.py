@@ -15,13 +15,15 @@ Kontrole:
     K4  suma kosztow godzinowych = koszt_pln w comparison.csv (oba warianty)
     K5  komfort z kolumny temperatur: godziny < T_min, deficyt, srednia / min / max T
     K6  oszczednosc zl i %, kryterium (>= prog % i nie wiecej godzin < T_min)
-    K7  te same dane wejsciowe: cena i pogoda zgodne z plikiem z kolumny `dane`
+    K7  te same dane wejsciowe: cena i pogoda zgodne z plikiem z kolumny `dane`,
+        a MD5 tego pliku (konce linii LF) = `dane_md5` (Lab 6, Z-06)
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -37,6 +39,7 @@ CMP_COLUMNS = [
     "wariant", "parametry", "dane", "n_godzin", "koszt_pln", "energia_kwh",
     "godziny_grzania", "godziny_ponizej_tmin", "deficyt_c_h", "srednia_temp_c",
     "min_temp_c", "max_temp_c", "oszczednosc_pln", "oszczednosc_proc", "kryterium_spelnione",
+    "dane_md5", "data_uruchomienia",
 ]
 VARIANTS = ("termostat", "dp")
 
@@ -77,7 +80,7 @@ def check(folder: Path, power_kw: float, min_saving_pct: float) -> list[str]:
     for name in VARIANTS:
         if int(cmp[name]["n_godzin"]) != 24:
             errors["K1"].append(f"{name}: n_godzin = {cmp[name]['n_godzin']}")
-    if cmp["termostat"]["parametry"] != cmp["dp"]["parametry"] or cmp["termostat"]["dane"] != cmp["dp"]["dane"]:
+    if any(cmp["termostat"][c] != cmp["dp"][c] for c in ("parametry", "dane", "dane_md5", "data_uruchomienia")):
         errors["K1"].append("warianty maja rozne parametry albo dane")
 
     params = parse_params(cmp["dp"]["parametry"])
@@ -150,6 +153,9 @@ def check(folder: Path, power_kw: float, min_saving_pct: float) -> list[str]:
     if not source.exists():
         errors["K7"].append(f"brak pliku danych {source}")
     else:
+        md5 = hashlib.md5(source.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        if md5 != cmp["dp"]["dane_md5"]:
+            errors["K7"].append(f"MD5 {source.name} = {md5} != dane_md5 {cmp['dp']['dane_md5']}")
         _, src_rows = read_csv(source)
         src = {int(r["hour"]): r for r in src_rows}
         for r in obs:
