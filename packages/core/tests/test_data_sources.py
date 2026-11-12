@@ -64,3 +64,25 @@ def test_format_as_csv_string():
     lines = csv_text.strip().split("\n")
     assert lines[0] == "hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2"
     assert len(lines) == 25
+
+
+def test_save_as_csv_is_atomic(tmp_path, monkeypatch):
+    """Z-09: przerwany zapis zostawia poprzedni plik, a nie niepełny nowy."""
+    import os
+
+    import pytest
+    from heating_optimizer import HourlyInputs
+    from heating_optimizer.data_sources import save_as_csv
+
+    day = HourlyInputs.of([0.5] * 24, [1.0] * 24, [0.0] * 24)
+    target = tmp_path / "doba_live.csv"
+    target.write_text("poprzednia doba", encoding="utf-8")
+
+    def broken_replace(src, dst):
+        raise OSError("dysk pełny")
+
+    monkeypatch.setattr(os, "replace", broken_replace)
+    with pytest.raises(OSError):
+        save_as_csv(day, target)
+    assert target.read_text(encoding="utf-8") == "poprzednia doba"
+    assert not list(tmp_path.glob("*.tmp"))

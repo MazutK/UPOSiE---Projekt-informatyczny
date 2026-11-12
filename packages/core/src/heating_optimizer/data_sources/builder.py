@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import io
+import json
 import math
+import os
+import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -52,16 +55,33 @@ def build_hourly_inputs(
     )
 
 
-def save_as_csv(inputs: HourlyInputs, target_path: str | Path) -> None:
-    """Zapisuje HourlyInputs w formacie CSV akceptowanym przez silnik."""
-    path = Path(target_path)
+def _write_atomic(path: Path, text: str) -> None:
+    """Z-09: zapis przez plik tymczasowy + os.replace.
+
+    Przerwanie w trakcie zostawia stary plik, nigdy niepełny nowy.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
-        f.write("hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2\n")
-        for h in range(inputs.hours):
-            f.write(
-                f"{h},{inputs.prices[h]:.4f},{inputs.outside_temperatures[h]:.2f},{inputs.solar_radiation[h]:.1f}\n"
-            )
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        os.replace(tmp_name, path)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
+
+
+def save_as_csv(inputs: HourlyInputs, target_path: str | Path) -> None:
+    """Zapisuje HourlyInputs w formacie CSV akceptowanym przez silnik (atomowo)."""
+    _write_atomic(Path(target_path), format_as_csv_string(inputs))
+
+
+def save_live_meta(csv_path: str | Path, meta: dict[str, str]) -> Path:
+    """Z-08: zapisuje obok doby plik `<nazwa>.meta.json` z datą i źródłem danych."""
+    path = Path(csv_path)
+    meta_path = path.with_name(path.stem + ".meta.json")
+    _write_atomic(meta_path, json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
+    return meta_path
 
 
 def format_as_csv_string(inputs: HourlyInputs) -> str:

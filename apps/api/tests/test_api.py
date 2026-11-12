@@ -99,12 +99,12 @@ def _pse_down(date_str, timeout):
     raise OSError("PSE niedostępne")
 
 
-def test_live_defaults_to_today_and_keeps_weather_when_pse_down(monkeypatch, tmp_path):
+def test_live_defaults_to_today_and_does_not_mix_days_when_pse_down(monkeypatch, tmp_path):
     from datetime import date
 
     from hems_api import service
 
-    monkeypatch.setattr(service, "BUNDLED_DATA_DIR", tmp_path)
+    monkeypatch.setenv("HEMS_LIVE_DIR", str(tmp_path))
     monkeypatch.setattr(service, "fetch_open_meteo_day", _fake_weather)
     monkeypatch.setattr(service, "fetch_pse_day", _pse_down)
 
@@ -114,9 +114,11 @@ def test_live_defaults_to_today_and_keeps_weather_when_pse_down(monkeypatch, tmp
     today = date.today().isoformat()
     assert data["date"] == today
     assert _fake_weather.date == today
-    assert data["source"] == "live_weather_sample_prices"
+    # P-01: bez doby mieszanej — cała próbka offline, a nie pogoda z dziś + ceny z próbki
+    assert data["source"] == "offline_sample"
+    assert "2026-10-13" in data["message"]
     first_row = (tmp_path / "doba_live.csv").read_text(encoding="utf-8").splitlines()[1]
-    assert first_row.endswith(",5.00,0.0")
+    assert not first_row.endswith(",5.00,0.0")
 
 
 def test_live_endpoint(monkeypatch, tmp_path):
