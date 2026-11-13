@@ -128,3 +128,65 @@ def test_live_endpoint(monkeypatch, tmp_path):
     data = response.json()
     assert data["scenario_name"] == "doba_live"
     assert data["hours"] == 24
+
+
+# --- Lab 6: Z-03 i Z-04 ---------------------------------------------------
+
+
+def _post_raw(body: str):
+    return client.post("/api/optimize", content=body, headers={"content-type": "application/json"})
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '{"t_start": NaN}',
+        '{"t_min": Infinity}',
+        '{"model_params": {"alpha": NaN}}',
+        '{"overrides": {"3": 1}, "max_overshoot": -Infinity}',
+    ],
+)
+def test_nan_or_infinity_is_422_not_500(body):
+    response = _post_raw(body)
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert isinstance(detail, list) and detail
+    assert "optimal" not in response.json()
+
+
+def test_malformed_json_is_still_422():
+    response = _post_raw('{"t_min": ')
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "json_invalid"
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"alpha": -5},
+        {"alpha": 0},
+        {"alpha": 1.5},
+        {"beta": 0},
+        {"beta": -0.2},
+        {"gamma": -0.1},
+        {"heater_power_kw": 0},
+        {"heater_power_kw": -1},
+    ],
+)
+def test_physically_invalid_model_params_are_422(params):
+    response = client.post("/api/optimize", json={"model_params": params})
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][:2] == ["body", "model_params"]
+
+
+def test_valid_model_params_still_work():
+    response = client.post(
+        "/api/optimize", json={"model_params": {"alpha": 0.01, "beta": 0.3, "gamma": 0.0}}
+    )
+    assert response.status_code == 200
+
+
+def test_compare_and_sensitivity_also_reject_nan():
+    for path in ("/api/compare", "/api/sensitivity"):
+        response = client.post(path, content='{"t_start": NaN}', headers={"content-type": "application/json"})
+        assert response.status_code == 422, path
