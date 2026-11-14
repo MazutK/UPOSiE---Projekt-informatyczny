@@ -32,12 +32,13 @@ def test_load_inputs_matches_model_horizon():
 def test_user_data_dir_takes_precedence(tmp_path, monkeypatch):
     custom = tmp_path / "wlasne"
     custom.mkdir()
+    rows = "".join(f"{h},0.5,0.0,0.0\n" for h in range(24))
     (custom / "doba_testowa.csv").write_text(
-        "hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2\n0,0.5,0.0,0.0\n",
+        "hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2\n" + rows,
         encoding="utf-8",
     )
     monkeypatch.setenv(DATA_DIR_ENV, str(custom))
 
     assert "doba_testowa" in {scenario.name for scenario in available()}
-    assert load_inputs("doba_testowa").hours == 1
+    assert load_inputs("doba_testowa").hours == 24
     assert default_model().delay == 2  # parametry.json nadal z pakietu
