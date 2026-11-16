@@ -1,0 +1,6 @@
+{
+  "forecast": 14.0,
+  "unit": "zgloszenia/dzien",
+  "method": "moving_average",
+  "window": 3
+}
