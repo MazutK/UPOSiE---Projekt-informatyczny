@@ -294,7 +294,7 @@ Nazwy pól są te same co w `docs/data-dictionary.md` (Lab 3) i `scripts/compare
 | Doby scenariuszy | `packages/core/src/heating_optimizer/data/doba_*.csv` | CSV, te same 4 kolumny | jak wyżej | `hour`; nazwa pliku bez `.csv` = `scenario` w API |
 | Doba live (GUI) | `packages/core/src/heating_optimizer/data/doba_live.csv` | CSV, te same 4 kolumny | jak wyżej | `hour`; **nadpisywana** przy każdym `GET /api/live` |
 | Parametry budynku | `packages/core/src/heating_optimizer/data/parametry.json` | JSON obiekt | `ALPHA`, `BETA`, `GAMMA`, `CONSTANT` REAL; `DELAY` INTEGER [h]; `HEMS_HEATER_POWER_KW` REAL [kW] | jeden plik = jeden budynek |
-| Porównanie (Lab 4) | `results/lab4/comparison.csv`, `results/lab4/sensitivity/comparison.csv` | CSV | `wariant` TEXT (`termostat`/`dp`), `parametry` TEXT (`t_min=…;t_max=…;t_start=…;max_overshoot=…`), `dane` TEXT (ścieżka wejścia), `n_godzin` INTEGER, `koszt_pln` REAL, `energia_kwh` REAL, `godziny_grzania` INTEGER, `godziny_ponizej_tmin` INTEGER, `deficyt_c_h` REAL, `srednia_temp_c`, `min_temp_c`, `max_temp_c` REAL, `oszczednosc_pln` REAL, `oszczednosc_proc` REAL [%], `kryterium_spelnione` TEXT (`true`/`false`/`-`) | `wariant` w obrębie katalogu |
+| Porównanie (Lab 4) | `results/lab4/comparison.csv`, `results/lab4/sensitivity/comparison.csv` | CSV | `wariant` TEXT (`termostat`/`dp`), `parametry` TEXT (`t_min=…;t_max=…;t_start=…;max_overshoot=…`), `dane` TEXT (ścieżka wejścia), `n_godzin` INTEGER, `koszt_pln` REAL, `energia_kwh` REAL, `godziny_grzania` INTEGER, `godziny_ponizej_tmin` INTEGER, `deficyt_c_h` REAL, `srednia_temp_c`, `min_temp_c`, `max_temp_c` REAL, `oszczednosc_pln` REAL, `oszczednosc_proc` REAL [%], `kryterium_spelnione` TEXT (`true`/`false`/`-`), `dane_md5` TEXT (MD5 pliku wejścia, końce linii LF), `data_uruchomienia` TEXT ISO 8601 (Lab 6, Z-06) | `wariant` w obrębie katalogu |
 | Obserwacje (Lab 4) | `results/lab4/observations.csv`, `results/lab4/sensitivity/observations.csv` | CSV | 4 kolumny doby + `termostat_u`, `dp_u` INTEGER 0/1, `termostat_temp_c`, `dp_temp_c` REAL [°C], `termostat_koszt_pln`, `dp_koszt_pln` REAL [zł] | `hour` w obrębie katalogu |
 | Eksport planu (GUI) | pobierany plik `plan_grzania_<scenariusz>.csv` (u użytkownika, poza repo) | CSV | 4 kolumny doby + `optimal_state`, `optimal_temp_c`, `optimal_cost_pln`, `thermostat_state`, `thermostat_temp_c`, `thermostat_cost_pln` | `hour` |
 
@@ -320,7 +320,8 @@ bezpośrednio na pliku daje inny wynik (`74a9788a…`). Wersją danych jest skr�
 
 - `compare_methods.py` odmawia zapisu, gdy wynik miałby nadpisać plik wejściowy.
 - Różne uruchomienia trzeba kierować do **różnych katalogów** (`results/lab4` vs `results/lab4/sensitivity`).
-  Skrypt nie blokuje ponownego zapisu do istniejącego katalogu — nadpisuje oba pliki.
+  _Lab 6 (Z-07):_ skrypt odmawia zapisu (kod wyjścia 1), gdy w katalogu są już `observations.csv`
+  lub `comparison.csv`; ponowny zapis tylko z flagą `--overwrite`, przez plik tymczasowy + `os.replace`.
 - Wyniki są w repo, więc zmianę widać w `git status results/`; przy tych samych danych
   i parametrach wynik jest identyczny (brak losowania), więc ponowne uruchomienie nie daje różnic.
 
@@ -328,12 +329,14 @@ bezpośrednio na pliku daje inny wynik (`74a9788a…`). Wersją danych jest skr�
 
 1. `comparison.csv` nie zawiera wersji danych (MD5) ani daty uruchomienia — powiązanie jest tylko
    przez ścieżkę w kolumnie `dane` i opis w `docs/experiment.md`. Kryterium: kolumna `dane_md5`.
+   **Zrobione w Lab 6 (Z-06):** kolumny `dane_md5`, `data_uruchomienia`; `check_lab4.py` (K7) porównuje MD5.
 2. `doba_live.csv` nie przechowuje daty, z której pochodzi — po `GET /api/live` nie da się z samego
    pliku powiedzieć, którą dobę opisuje. Kryterium: data w nazwie pliku albo osobny plik metadanych.
 3. Eksport planu z GUI nie zawiera `T_min`, `T_max`, `T_start` ani daty — plik bez kontekstu.
    Kryterium: parametry w nazwie pliku albo w nagłówku.
 4. `compare_methods.py` po cichu nadpisuje istniejący katalog wyników. Kryterium: odmowa zapisu
    do niepustego katalogu bez flagi `--overwrite`.
+   **Zrobione w Lab 6 (Z-07).**
 
 ---
 
