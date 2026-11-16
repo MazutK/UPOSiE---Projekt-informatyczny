@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +11,9 @@ from .model import ThermalModel
 BUNDLED_DATA_DIR = Path(__file__).resolve().parent / "data"
 PARAMS_FILE = "parametry.json"
 DATA_DIR_ENV = "HEMS_DATA_DIR"
+LIVE_DIR_ENV = "HEMS_LIVE_DIR"
+LIVE_SCENARIO = "doba_live"
+LIVE_META_SUFFIX = ".meta.json"
 
 DESCRIPTIONS = {
     "doba_zmienna_cena": "łagodna zima, typowy przebieg cen",
@@ -28,11 +32,47 @@ class Scenario:
     hours: int
 
 
+def live_data_dir() -> Path:
+    """Katalog doby live (Z-09): poza śledzonymi plikami pakietu.
+
+    Domyślnie `data-local/` w katalogu repozytorium (jest w .gitignore);
+    w kontenerze ustawiane przez zmienną HEMS_LIVE_DIR.
+    """
+    configured = os.environ.get(LIVE_DIR_ENV)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return Path(__file__).resolve().parents[4] / "data-local"
+
+
 def search_dirs() -> tuple[Path, ...]:
+    dirs: list[Path] = []
     extra = os.environ.get(DATA_DIR_ENV)
     if extra:
-        return (Path(extra).expanduser().resolve(), BUNDLED_DATA_DIR)
-    return (BUNDLED_DATA_DIR,)
+        dirs.append(Path(extra).expanduser().resolve())
+    dirs.append(live_data_dir())
+    dirs.append(BUNDLED_DATA_DIR)
+    return tuple(dirs)
+
+
+def read_live_meta(csv_path: Path) -> dict[str, str] | None:
+    """Metadane doby live (Z-08): data doby, źródło, czas pobrania. None, gdy brak."""
+    meta_path = csv_path.with_name(csv_path.stem + LIVE_META_SUFFIX)
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return meta if isinstance(meta, dict) else None
+
+
+def _describe(path: Path) -> str:
+    description = DESCRIPTIONS.get(path.stem, "dane własne")
+    if path.stem == LIVE_SCENARIO:
+        meta = read_live_meta(path)
+        if meta and meta.get("data_date"):
+            description += f" — doba {meta['data_date']} ({meta.get('source', '?')})"
+        else:
+            description += " — data doby nieznana"
+    return description
 
 
 def _count_hours(path: Path) -> int:
@@ -49,7 +89,7 @@ def available() -> tuple[Scenario, ...]:
             found[path.stem] = Scenario(
                 name=path.stem,
                 path=path,
-                description=DESCRIPTIONS.get(path.stem, "dane własne"),
+                description=_describe(path),
                 hours=_count_hours(path),
             )
     return tuple(found[name] for name in sorted(found))

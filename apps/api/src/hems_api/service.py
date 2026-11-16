@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from heating_optimizer import (
@@ -22,10 +22,15 @@ from heating_optimizer.data_sources import (
     fetch_open_meteo_day,
     fetch_pse_day,
     load_live_sample,
-    load_pse_file,
     save_as_csv,
+    save_live_meta,
 )
-from heating_optimizer.datasets import BUNDLED_DATA_DIR
+from heating_optimizer.datasets import (
+    BUNDLED_DATA_DIR,
+    LIVE_SCENARIO,
+    live_data_dir,
+    read_live_meta,
+)
 
 from .schemas import (
     CompareRequest,
@@ -193,52 +198,72 @@ def sensitivity(request: SensitivityRequest) -> SensitivityResponse:
     )
 
 
-def get_live_day(date_str: str | None = None) -> LiveDayResponse:
-    """Pobiera dobę z API PSE + Open-Meteo lub fallbackuje na zapisaną próbkę.
+SAMPLE_DATE = "2026-10-13"  # data próbek w data/raw/ (Lab 3)
+RAW_DIR = Path(__file__).resolve().parents[4] / "data" / "raw"
 
-    Bez daty bierze dzisiejszą. Gdy PSE nie odpowiada, a Open-Meteo tak, pogoda
-    zostaje z wybranej daty, a z próbki brane są tylko ceny.
+
+def get_live_day(date_str: str | None = None) -> LiveDayResponse:
+    """Składa dobę live z PSE + Open-Meteo dla jednej daty (UC-01, krok 2).
+
+    Zasady (P-01, Z-08, Z-09):
+    - nigdy nie łączymy pogody z jednej daty i cen z innej — albo pełna doba z obu
+      źródeł dla wybranej daty, albo cała próbka offline, albo poprzednia doba;
+    - komunikat podaje datę, z której faktycznie są dane;
+    - doba i jej metadane są zapisywane atomowo do katalogu live (poza repo).
     """
     date_str = date_str or date.today().isoformat()
-    repo_root = Path(__file__).resolve().parents[4]
-    target_csv = BUNDLED_DATA_DIR / "doba_live.csv"
-    raw_pse = repo_root / "data" / "raw" / "pse-rce-sample.json"
-    raw_weather = repo_root / "data" / "raw" / "open-meteo-sample.json"
-
-    source = "live_api"
-    message = f"Pomyślnie pobrano dane z PSE i Open-Meteo dla daty {date_str}."
+    target_csv = live_data_dir() / f"{LIVE_SCENARIO}.csv"
+    raw_pse = RAW_DIR / "pse-rce-sample.json"
+    raw_weather = RAW_DIR / "open-meteo-sample.json"
 
     try:
         temps, rads = fetch_open_meteo_day(date_str, timeout=3.0)
-        try:
-            prices = fetch_pse_day(date_str, timeout=3.0)
-        except Exception:
-            if not raw_pse.is_file():
-                raise
-            prices = load_pse_file(raw_pse)
-            source = "live_weather_sample_prices"
-            message = (
-                f"Pogoda z Open-Meteo dla daty {date_str}. PSE nie odpowiada — "
-                "ceny z zapisanej próbki (2026-10-13)."
-            )
+        prices = fetch_pse_day(date_str, timeout=3.0)
         inputs = build_hourly_inputs(prices, temps, rads)
-        save_as_csv(inputs, target_csv)
-    except Exception:
-        # Fallback na lokalne próbki
+        source, data_date = "live_api", date_str
+        message = f"Pobrano dane z PSE i Open-Meteo dla daty {date_str}."
+    except Exception as live_error:
+        reason = type(live_error).__name__
         if raw_pse.is_file() and raw_weather.is_file():
             inputs = load_live_sample(raw_pse, raw_weather)
-            save_as_csv(inputs, target_csv)
-            source = "offline_sample"
-            message = f"Brak połączenia z siecią lub błąd API dla daty {date_str}. Użyto zapisanej próbki offline (2026-10-13)."
-        elif target_csv.is_file():
-            source = "cached_bundled"
-            message = f"Użyto wcześniej zapisanej doby live dla {date_str}."
+            source, data_date = "offline_sample", SAMPLE_DATE
+            message = (
+                f"Nie udało się pobrać pełnej doby {date_str} ({reason}). "
+                f"Użyto próbki offline z {SAMPLE_DATE} — wynik NIE dotyczy wybranej daty."
+            )
         else:
-            raise
+            previous = next(
+                (p for p in (target_csv, BUNDLED_DATA_DIR / f"{LIVE_SCENARIO}.csv") if p.is_file()),
+                None,
+            )
+            if previous is None:
+                raise
+            meta = read_live_meta(previous) or {}
+            known_date = meta.get("data_date")
+            return LiveDayResponse(
+                date=date_str,
+                scenario_name=LIVE_SCENARIO,
+                source="cached_bundled",
+                hours=24,
+                message=(
+                    f"Nie udało się pobrać doby {date_str} ({reason}). Zostaje poprzednio "
+                    + (f"zapisana doba z {known_date}." if known_date else "zapisana doba o nieznanej dacie.")
+                ),
+            )
 
+    save_as_csv(inputs, target_csv)
+    save_live_meta(
+        target_csv,
+        {
+            "requested_date": date_str,
+            "data_date": data_date,
+            "source": source,
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        },
+    )
     return LiveDayResponse(
         date=date_str,
-        scenario_name="doba_live",
+        scenario_name=LIVE_SCENARIO,
         source=source,
         hours=24,
         message=message,

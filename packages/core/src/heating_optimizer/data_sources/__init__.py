@@ -4,7 +4,7 @@ from pathlib import Path
 
 from heating_optimizer.inputs import HourlyInputs
 
-from .builder import build_hourly_inputs, format_as_csv_string, save_as_csv
+from .builder import build_hourly_inputs, format_as_csv_string, save_as_csv, save_live_meta
 from .open_meteo import fetch_open_meteo_day, load_open_meteo_file, parse_open_meteo_payload
 from .pse import fetch_pse_day, load_pse_file, parse_pse_payload
 
@@ -40,4 +40,5 @@ __all__ = [
     "parse_open_meteo_payload",
     "parse_pse_payload",
     "save_as_csv",
+    "save_live_meta",
 ]
