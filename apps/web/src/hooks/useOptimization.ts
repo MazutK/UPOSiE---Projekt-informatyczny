@@ -49,14 +49,10 @@ export function useOptimization(settings: OptimizeRequest) {
     api
       .optimize(settings)
       .then((result) => active && setLoaded({ settings, result, error: null }))
+      // Przy błędzie nie zostawiamy planu z poprzednich ustawień (Z-02):
+      // użytkownik widzi tylko komunikat, a nie stary koszt jako nowy wynik.
       .catch(
-        (e: unknown) =>
-          active &&
-          setLoaded((previous) => ({
-            settings,
-            result: previous?.result ?? null,
-            error: toMessage(e),
-          })),
+        (e: unknown) => active && setLoaded({ settings, result: null, error: toMessage(e) }),
       );
     return () => {
       active = false;

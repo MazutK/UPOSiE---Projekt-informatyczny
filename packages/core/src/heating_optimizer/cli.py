@@ -5,7 +5,7 @@ import csv
 import sys
 from pathlib import Path
 
-from .datasets import available, default_model, resolve
+from .datasets import HOURS_PER_DAY, available, default_model, resolve
 from .inputs import HourlyInputs
 from .model import ThermalModel
 from .optimizer import ComfortBand, find_optimal_schedule
@@ -91,7 +91,9 @@ def format_summary(optimal: Plan, thermostat: Plan, t_min: float) -> str:
 
 
 def write_csv(path: Path, inputs: HourlyInputs, optimal: Plan, thermostat: Plan) -> None:
-    with open(path, "w", encoding="utf-8", newline="") as f:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # "x" = tylko nowy plik: istniejący wynik nie zostanie po cichu nadpisany.
+    with open(path, "x", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
             [
@@ -129,7 +131,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         model = default_model() if args.params is None else ThermalModel.from_json(args.params)
         data_path = resolve(args.data)
-        inputs = HourlyInputs.from_csv(data_path)
+        if args.out is not None:
+            if args.out.resolve() == data_path.resolve():
+                raise ValueError("plik wyniku nie może nadpisać pliku wejściowego")
+            if args.out.exists():
+                raise FileExistsError(f"plik {args.out} już istnieje — podaj nową nazwę")
+        inputs = HourlyInputs.from_csv(data_path, expected_hours=HOURS_PER_DAY)
         comfort = ComfortBand(t_min=args.t_min, t_max=args.t_max)
         optimal = find_optimal_schedule(
             model, inputs, comfort, t_start=args.t_start, overrides=dict(args.override)
@@ -146,7 +153,11 @@ def main(argv: list[str] | None = None) -> int:
     print(format_summary(optimal, thermostat, args.t_min))
 
     if args.out:
-        write_csv(args.out, inputs, optimal, thermostat)
+        try:
+            write_csv(args.out, inputs, optimal, thermostat)
+        except OSError as e:
+            print(f"Błąd zapisu wyniku: {e}", file=sys.stderr)
+            return 1
         print(f"\n Zapisano: {args.out}")
     return 0
 

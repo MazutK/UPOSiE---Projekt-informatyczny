@@ -75,6 +75,37 @@ def test_cli_runs_and_writes_csv(tmp_path, capsys):
     assert len(out.read_text(encoding="utf-8").strip().splitlines()) == 25
 
 
+def test_cli_creates_missing_output_dir(tmp_path):
+    out = tmp_path / "wyniki" / "plan.csv"
+    assert cli.main(["--data", str(DATA / "doba_mroz.csv"), "--out", str(out)]) == 0
+    assert out.is_file()
+
+
+def test_cli_refuses_to_overwrite_existing_result(tmp_path, capsys):
+    out = tmp_path / "wyniki.csv"
+    out.write_text("stary wynik", encoding="utf-8")
+    assert cli.main(["--data", str(DATA / "doba_mroz.csv"), "--out", str(out)]) == 1
+    assert "już istnieje" in capsys.readouterr().err
+    assert out.read_text(encoding="utf-8") == "stary wynik"
+
+
+def test_cli_refuses_to_overwrite_input(tmp_path, capsys):
+    data = tmp_path / "doba.csv"
+    data.write_bytes((DATA / "doba_mroz.csv").read_bytes())
+    assert cli.main(["--data", str(data), "--out", str(data)]) == 1
+    assert "wejściowego" in capsys.readouterr().err
+
+
+def test_cli_rejects_incomplete_day(tmp_path, capsys):
+    lines = (DATA / "doba_mroz.csv").read_text(encoding="utf-8").splitlines()
+    data = tmp_path / "doba_23h.csv"
+    data.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
+    out = tmp_path / "wynik.csv"
+    assert cli.main(["--data", str(data), "--out", str(out)]) == 1
+    assert "brakujące godziny [23]" in capsys.readouterr().err
+    assert not out.exists()
+
+
 def test_cli_reports_missing_file(tmp_path, capsys):
     assert cli.main(["--data", str(tmp_path / "brak.csv")]) == 1
     assert "Błąd" in capsys.readouterr().err
