@@ -60,6 +60,14 @@ def run_sensitivity_analysis(
     sorted_values = sorted(set(values))
     rows: list[SensitivityRow] = []
 
+    # Termostat nie zależy od max_overshoot (reguła T_min/T_max, bez cen) — przy tej
+    # siatce liczymy go raz zamiast dla każdej wartości (Lab 6, ocena usprawnienia).
+    shared_thermostat = (
+        simulate_thermostat(model, inputs, t_min, t_max, t_start)
+        if parameter == "max_overshoot"
+        else None
+    )
+
     for val in sorted_values:
         if parameter == "t_min":
             current_t_min = float(val)
@@ -77,7 +85,9 @@ def run_sensitivity_analysis(
         )
 
         dp = find_optimal_schedule(model, inputs, comfort, t_start=t_start, overrides=overrides)
-        thermostat = simulate_thermostat(model, inputs, current_t_min, current_t_max, t_start)
+        thermostat = shared_thermostat or simulate_thermostat(
+            model, inputs, current_t_min, current_t_max, t_start
+        )
 
         saving = thermostat.cost - dp.cost
         saving_pct = round(100.0 * saving / thermostat.cost, 2) if thermostat.cost > 0 else 0.0

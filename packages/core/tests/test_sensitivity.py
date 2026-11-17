@@ -64,3 +64,28 @@ def test_export_sensitivity_csv():
     lines = csv_str.strip().split("\n")
     assert lines[0].startswith("parametr_t_min,")
     assert len(lines) == 3
+
+
+def test_overshoot_grid_reuses_one_thermostat_with_identical_rows():
+    """Lab 6: termostat liczony raz dla siatki max_overshoot — wynik jak przy liczeniu osobno."""
+    from heating_optimizer import sensitivity as module
+    from heating_optimizer import simulate_thermostat
+
+    calls = []
+    original = module.simulate_thermostat
+
+    def counted(*args, **kwargs):
+        calls.append(args)
+        return original(*args, **kwargs)
+
+    module.simulate_thermostat = counted
+    try:
+        result = run_sensitivity_analysis(MODEL, INPUTS, parameter="max_overshoot")
+    finally:
+        module.simulate_thermostat = original
+
+    assert len(calls) == 1
+    expected = simulate_thermostat(MODEL, INPUTS, 21.0, 22.5, 21.8)
+    for row in result.rows:
+        assert row.thermostat_cost_pln == round(expected.cost, 4)
+        assert row.thermostat_hours_below_t_min == expected.hours_below(21.0)

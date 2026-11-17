@@ -16,7 +16,7 @@
         </mxCell>
 
         <!-- GUI -->
-        <mxCell id="gui_mod" value="&lt;b&gt;GUI (apps/web)&lt;/b&gt;&lt;br&gt;React, Vite, Tailwind&lt;br&gt;• Formularz parametrów (T_min, T_max)&lt;br&gt;• Wykresy temperatur i cen&lt;br&gt;• Eksport planu do CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;" vertex="1" parent="system_box">
+        <mxCell id="gui_mod" value="&lt;b&gt;GUI (apps/web)&lt;/b&gt;&lt;br&gt;React, Vite, CSS&lt;br&gt;• Formularz parametrów (T_min, T_max)&lt;br&gt;• Wykresy temperatur i cen&lt;br&gt;• Eksport planu do CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;" vertex="1" parent="system_box">
           <mxGeometry x="40" y="140" width="180" height="100" as="geometry" />
         </mxCell>
 
@@ -36,7 +36,7 @@
         </mxCell>
 
         <!-- Scripts / Data Check -->
-        <mxCell id="check_mod" value="&lt;b&gt;Kontrola jakości danych&lt;/b&gt;&lt;br&gt;scripts/check_data.py&lt;br&gt;• Weryfikacja K1–K5 (brak NaN, 24h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=1.5;fontSize=11;" vertex="1" parent="system_box">
+        <mxCell id="check_mod" value="&lt;b&gt;Kontrola jakości danych&lt;/b&gt;&lt;br&gt;data_sources/builder.py (live)&lt;br&gt;scripts/check_data.py (Lab 3)&lt;br&gt;• 24 h, brak NaN, nasłonecznienie ≥ 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=1.5;fontSize=11;" vertex="1" parent="system_box">
           <mxGeometry x="40" y="360" width="180" height="60" as="geometry" />
         </mxCell>
 

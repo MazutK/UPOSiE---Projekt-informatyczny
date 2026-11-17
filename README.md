@@ -86,10 +86,48 @@ python scripts/check_lab4.py results/lab4/sensitivity
 ```
 
 Oczekiwane: termostat 11,15 zł / 4 h poniżej T_min, DP 5,35 zł / 0 h (−52,1 %);
-wrażliwość: 11,39 zł vs 7,28 zł (−36,1 %). Po ponownym uruchomieniu `git status results/` nie pokazuje zmian.
+wrażliwość: 11,39 zł vs 7,28 zł (−36,1 %).
+Od Lab 6 skrypt odmawia zapisu do katalogu, w którym są już wyniki — ponowne uruchomienie do
+`results/lab4` wymaga `--overwrite` (zmieni się tylko kolumna `data_uruchomienia`), lepiej podać nowy katalog.
 
 Demo z instrukcji (opcjonalnie): `python examples/lab4/compare_forecasts.py examples/lab4/data/popyt.csv examples/lab4/results/okno3 --window 3`
 
 ## Projekt architektury (Lab 5)
 Granice, UC-01, kontrakt, model danych, diagramy i przegląd: [`docs/architecture.md`](docs/architecture.md).
 Decyzja o zapisie: [`docs/decisions/001-storage.md`](docs/decisions/001-storage.md). Diagramy: `docs/diagrams/`.
+
+## Realizacja MVP (Lab 6)
+Stan, podział prac, ograniczenia i ocena usprawnienia: [`docs/implementation.md`](docs/implementation.md).
+
+**Instalacja** (Python 3.10+, z katalogu repozytorium):
+
+```bash
+python -m venv .venv
+# Windows: .\.venv\Scripts\Activate.ps1   |   Linux/macOS: source .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+**Główny przepływ (UC-01) — jedno polecenie:**
+
+```bash
+python -m heating_optimizer --data data/processed/doba-live.csv --out wyniki/plan-2026-10-13.csv
+```
+
+- Wejście: CSV doby `hour,price_pln_kwh,outside_temp_c,solar_radiation_wm2`, dokładnie 24 godziny 0..23
+  (`data/processed/doba-live.csv` z Lab 3 jest w repo). Pasmo: `--t-min 21.0 --t-max 22.5 --t-start 21.8` (domyślne).
+- Oczekiwane: optymalizator 5,35 zł / 0 h poniżej T_min, termostat 11,15 zł / 4 h, oszczędność 5,81 zł (52,1 %);
+  plik `wyniki/plan-2026-10-13.csv` (24 godziny, `wyniki/` jest w `.gitignore`).
+- Błędy: niepełna doba (`data/test/doba-invalid.csv`) → komunikat i kod 1 bez pliku wyniku;
+  istniejący plik `--out` nie jest nadpisywany.
+
+Ten sam przepływ w GUI: `npm install`, potem `npm run api` i `npm run dev` → http://localhost:5173
+(albo `docker compose up --build` → http://localhost:8080).
+
+**Konfiguracja:** zmienne opcjonalne opisane w [`.env.example`](.env.example) (`HEMS_DATA_DIR`,
+`HEMS_LIVE_DIR`, `HEMS_CORS_ORIGINS`) — bez sekretów. Doba pobrana w GUI („Dane publiczne”) trafia do
+`data-local/` (poza gitem) razem z `doba_live.meta.json` (data i źródło danych).
+
+**Kontrola:** `python -m pytest` (wszystkie testy), `python scripts/check_lab4.py results/lab4`.
+
+Ćwiczenia z instrukcji (osobno od kodu projektu): `python examples/lab6/forecast.py examples/lab6/history.json examples/lab6/results/run-02.json --window 3`
+→ `Prognoza: 14.00 zgloszenia/dzien`; opcjonalnie API: `python -m uvicorn examples.lab6.server:app --port 8001`.

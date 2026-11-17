@@ -5,6 +5,23 @@ interface ExportPlanButtonProps {
   result: OptimizeResponse | null;
 }
 
+function todayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/** Z-10: nazwa pliku niesie scenariusz, pasmo komfortu, temperaturę startową i datę eksportu. */
+export function exportFileName(result: OptimizeResponse, exportedOn: string = todayIso()): string {
+  const scenario = result.scenario.replace(/[^\w-]+/g, "_");
+  return (
+    `plan_grzania_${scenario}` +
+    `_tmin${result.t_min.toFixed(1)}_tmax${result.t_max.toFixed(1)}_tstart${result.t_start.toFixed(1)}` +
+    `_${exportedOn}.csv`
+  );
+}
+
 export function ExportPlanButton({ result }: ExportPlanButtonProps) {
   const handleExport = () => {
     if (!result) return;
@@ -44,7 +61,7 @@ export function ExportPlanButton({ result }: ExportPlanButtonProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `plan_grzania_${result.scenario}.csv`);
+    link.setAttribute("download", exportFileName(result));
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -62,7 +79,8 @@ export function ExportPlanButton({ result }: ExportPlanButtonProps) {
         📥 Pobierz plan godzinowy (CSV)
       </button>
       <span className="export-plan__hint">
-        Eksportuje 24-godzinny plan z temperaturami i decyzjami obu metod.
+        Eksportuje 24-godzinny plan z temperaturami i decyzjami obu metod. Nazwa pliku zawiera
+        scenariusz, T_min, T_max, T_start i datę eksportu.
       </span>
     </div>
   );
