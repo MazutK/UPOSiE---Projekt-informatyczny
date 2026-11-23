@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import sys
 from pathlib import Path
 
@@ -23,6 +24,19 @@ def parse_override(text: str) -> tuple[int, int]:
         raise argparse.ArgumentTypeError(f"oczekiwano GODZINA=0/1, otrzymano '{text}'") from None
 
 
+def finite_float(text: str) -> float:
+    """Temperatura z linii poleceń: zwykła liczba, bez nan/inf (jak w API, Z-03)."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{text}' nie jest liczbą") from None
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError(
+            f"temperatura musi być skończoną liczbą, otrzymano '{text}'"
+        )
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m heating_optimizer",
@@ -35,9 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--params", type=Path, help="plik JSON z parametrami modelu")
     parser.add_argument("--list", action="store_true", help="wypisz dostępne scenariusze i zakończ")
-    parser.add_argument("--t-min", type=float, default=21.0, help="dolna granica komfortu [°C]")
-    parser.add_argument("--t-max", type=float, default=22.5, help="górna granica komfortu [°C]")
-    parser.add_argument("--t-start", type=float, default=21.8, help="temperatura początkowa [°C]")
+    parser.add_argument(
+        "--t-min", type=finite_float, default=21.0, help="dolna granica komfortu [°C]"
+    )
+    parser.add_argument(
+        "--t-max", type=finite_float, default=22.5, help="górna granica komfortu [°C]"
+    )
+    parser.add_argument(
+        "--t-start", type=finite_float, default=21.8, help="temperatura początkowa [°C]"
+    )
     parser.add_argument(
         "--override",
         type=parse_override,
