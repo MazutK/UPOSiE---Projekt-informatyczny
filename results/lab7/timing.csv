@@ -1,0 +1,11 @@
+data_pomiaru,commit,python,system,cpu,przypadek,godzin,powtorzenie,czas_s
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,doba,24,1,0.0033
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,doba,24,2,0.0034
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,doba,24,3,0.0033
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,doba,24,4,0.0032
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,doba,24,5,0.0037
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,10x,240,1,1.2015
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,10x,240,2,1.3021
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,10x,240,3,1.2446
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,10x,240,4,1.2013
+2026-11-23T18:17:48,5775572,3.13.18,Linux 6.18.44-fc-v726 x86_64,Intel(R) Xeon(R) Processor @ 2.30GHz,10x,240,5,1.2579

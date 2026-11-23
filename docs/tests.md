@@ -83,20 +83,153 @@ Po poprawce dopisujemy nowy wiersz, starych nie usuwamy. Czas: **zestaw** = cał
 
 ## 3. Pomiar niefunkcjonalny
 
-_(uzupełnia Sebastian Król)_
+_Sebastian Król._
+
+**Właściwość:** czas pełnej analizy UC-01: wczytanie i walidacja doby z CSV, plan DP i symulacja
+termostatu (te same funkcje co CLI i `POST /api/optimize`; bez sieci i bez HTTP).
+
+**Kryterium (ustalone przed pomiarem):** mediana ≤ **1 s** dla jednej doby (24 h).
+Uzasadnienie: w GUI plan przelicza się sam po każdej zmianie suwaka `T_min`/`T_max`/`T_start`
+i wymuszeń (`docs/user-guide.md`, p. 4). Użytkownik porównuje warianty, więc odpowiedź musi być
+praktycznie natychmiastowa; 1 s to założenie zespołu (typowa granica, przy której opóźnienie
+zaczyna przerywać pracę). Zakres projektu to jedna doba (`problem.md`), więc kryterium dotyczy 24 h.
+Dziesięciokrotnie większa próbka (240 h) to ćwiczenie z instrukcji: pokazuje, jak czas rośnie z horyzontem.
+
+**Warunki:**
+
+| Element | Ustalenie |
+|---|---|
+| Polecenie | `python scripts/measure_lab7.py data/processed/doba-live.csv results/lab7` |
+| Dane | `doba-live.csv` (24 h, MD5 `729ecf79…`); 10x = ta sama doba powtórzona 10 razy (240 h, plik tymczasowy) |
+| Parametry | `T_min` 21,0, `T_max` 22,5, `T_start` 21,8, model z `parametry.json` |
+| Metoda | 1 uruchomienie rozgrzewające (nieliczone), 5 powtórzeń, `time.perf_counter`; walidacja wejścia włączona |
+| Kod | commit `5775572` (zmiany Lab 7 nie dotyczą silnika poza walidacją parametrów CLI) |
+| Sprzęt | Linux 6.18 x86_64, Intel Xeon @ 2,30 GHz, 2 rdzenie, Python 3.13.18 (środowisko wirtualne, nie laptop zespołu) |
+
+**Wyniki** (`results/lab7/timing.csv` - każde powtórzenie, `results/lab7/timing-summary.csv` - podsumowanie):
+
+| Przypadek | Godzin | Mediana | Min | Max | Kryterium ≤ 1 s | Kontrola poprawności |
+|---|---|---|---|---|---|---|
+| doba | 24 | **0,0033 s** | 0,0032 s | 0,0037 s | **spełnione** (ok. 300× zapasu) | koszt DP 5,3469 zł, termostat 11,1525 zł (= Lab 4) |
+| 10x | 240 | 1,2446 s | 1,2013 s | 1,3021 s | nie dotyczy (poza zakresem; byłoby niespełnione) | koszt DP 71,1720 zł, termostat 100,1329 zł |
+
+**Wniosek:** dla zakresu projektu (jedna doba) czas jest pomijalny wobec kryterium. Czas rośnie
+szybciej niż liniowo: 10 razy dłuższy horyzont daje ok. 380 razy dłuższy czas, bo z każdą godziną
+przybywa stanów DP (temperatura × historia grzałki). Plan na kilka dni w GUI wymagałby zmian
+w `optimizer.py` (np. ograniczenia liczby stanów) - zapisane w sekcji 7.
+
+**Ograniczenia pomiaru:** pomiar w środowisku wirtualnym, nie na komputerze użytkownika; nie obejmuje
+HTTP ani rysowania wykresów w przeglądarce. _(Sebastian Król: dopisz wiersz z pomiarem na swoim
+laptopie - to samo polecenie z `--overwrite` do nowego katalogu, np. `results/lab7/laptop-seba/`.)_
 
 ## 4. Ocena danych, wyników i kodu
 
-_(uzupełnia Sebastian Rączka; link do PR z przeglądem kodu: Kacper Mazur)_
+_Sebastian Rączka. Przegląd kodu w PR: Kacper Mazur._
+
+### 4.1. Dane
+
+| Kontrola | Wynik | Dowód |
+|---|---|---|
+| Próbka oceny = próbka z Lab 4 | tak, MD5 `729ecf79df5d39a3ef5e9c64d8be77fe` w `doba-live.csv` i w `results/lab4/comparison.csv` (`dane_md5`) | sekcja 1, `comparison.csv` |
+| Kontrole Lab 3 (`check_data.py`) | `Kontrola OK`: 24 rekordy, 0 braków, 0 duplikatów `hour` | sekcja 2 (Oskar), krok w `check.yml` |
+| Kontrola obliczeń Lab 4 (`check_lab4.py`) | `Kontrola OK (K1-K7)` dla `results/lab4` i `results/lab4/sensitivity` | krok w `check.yml` |
+
+Ograniczenie danych: jedna doba archiwalna (13.10.2026, Warszawa) z cenami RCE i pogodą znanymi z góry.
+Zero naruszeń kontroli nie dowodzi, że próbka jest reprezentatywna dla innych dni i budynków.
+
+### 4.2. Wyniki po integracji vs eksperyment Lab 4
+
+**Miary** (te same co w Lab 4, `experiment.md` p. 3): koszt [zł] i godziny poniżej `T_min` [h], do tego
+energia, godziny grzania, deficyt [K·h], temperatury średnia/min/max, oszczędność [zł, %]. Dla każdej
+godziny: MAE temperatury i liczba różnych decyzji względem `observations.csv` z Lab 4.
+
+**Sposób:** `python scripts/compare_lab7.py results/lab7`. Dla przypadku bazowego (`T_min` 21,0) i próby
+wrażliwości (`T_min` 21,5) skrypt wykonuje pełną operację przez interfejs projektu
+(`python -m heating_optimizer … --out`), liczy miary od nowa z pliku wyniku, dopasowuje godziny po
+kolumnie `hour` (nie po pozycji) i porównuje z `results/lab4/…/comparison.csv`.
+
+**Uzgodniona tolerancja (przed uruchomieniem):** koszt i oszczędność ±0,01 zł, oszczędność % ±0,1 p.p.,
+temperatury i deficyt ±0,01 °C, liczby godzin i energia: dokładnie. Lab 4 był deterministyczny
+(brak losowania), więc każda większa różnica oznaczałaby zmianę zachowania po integracji.
+
+| Przypadek | Wariant | Koszt Lab 4 → Lab 7 | Godziny < T_min | MAE temp. | Różne decyzje | Zgodne miary |
+|---|---|---|---|---|---|---|
+| bazowy (`T_min` 21,0) | termostat | 11,1525 → 11,1525 zł | 4 → 4 | 0,0000 °C | 0/24 | 10/10 |
+| bazowy | DP | 5,3469 → 5,3469 zł | 0 → 0 | 0,0000 °C | 0/24 | 10/10 |
+| wrażliwość (`T_min` 21,5) | termostat | 11,3871 → 11,3871 zł | 5 → 5 | 0,0000 °C | 0/24 | 10/10 |
+| wrażliwość | DP | 7,2809 → 7,2809 zł | 0 → 0 | 0,0000 °C | 0/24 | 10/10 |
+
+Wynik: **40/40 miar zgodnych**, oszczędność 5,81 zł (52,06 %) i 4,11 zł (36,06 %) jak w Lab 4.
+Pliki: `results/lab7/quality.csv` (każda miara), `results/lab7/quality-hourly.csv` (MAE, decyzje).
+Po integracji nie ma pogorszenia, więc kryterium praktyczne z Lab 4 (≥ 5 % oszczędności i nie zimniej)
+pozostaje spełnione.
+
+**Czy porównanie wykrywa różnicę** (kontrolowana zmiana, nie zapisana w repo): po zmianie `T_start` na
+21,9 w kopii skryptu wynik to 30/40 zgodnych, MAE temperatury 0,10–0,13 °C, 1 różna decyzja DP,
+kod wyjścia ≠ 0 dla niezgodności.
+
+**Poprawne obliczenie ≠ użyteczny wynik:** zgodność z Lab 4 potwierdza, że integracja nie zmieniła
+obliczeń. Nie potwierdza, że w prawdziwym domu oszczędność wyniesie 52 %: plan zakłada idealną
+prognozę cen i pogody oraz budynek referencyjny (`experiment.md` p. 4, odrzucone SMPC).
+
+### 4.3. Kod
+
+| Kontrola | Wynik |
+|---|---|
+| `python -m pytest` | `128 passed, 1 warning` (104 dotychczasowe + 15 logiki + 9 integracyjnych TC-08..TC-11) |
+| `ruff check .` | 4 ostrzeżenia, wszystkie sprzed Lab 7 (`check_data.py`, `check_lab4.py`, `examples/lab4`); pliki Lab 7 bez uwag |
+| Przegląd zmienionego fragmentu (`cli.py`, `finite_float`; podział funkcji, nazwy, wyjątki, zgodność z UC-01) | _(Kacper Mazur: link do komentarza w PR `feature/lab7-test-integracyjny`)_ |
 
 ## 5. Statusy wymagań
 
-_(uzupełnia Sebastian Rączka)_
+_Sebastian Rączka._ Wymagania z `docs/problem.md` + kryterium czasu z sekcji 3. Wymagań niespełnionych
+lub niesprawdzonych nie usuwamy - zostają jako jawne zadania.
+
+| ID | Wymaganie | Wynik | Dowód | Status |
+|---|---|---|---|---|
+| R1 | Plan ogrzewania dla kolejnych 24 h | 24 decyzje 0/1 z temperaturą w CLI, pliku CSV i API; niepełna lub pusta doba → błąd, nie plan | TC-01, TC-06, TC-07, TC-08, TC-09, TC-10 | **spełnione** |
+| R2 | Uwzględnianie cen energii | droższe godziny 10–13 → inny plan bez grzania w 10–13; DP grzeje w tanich godzinach | TC-05, TC-01 | **spełnione** |
+| R3 | Temperatura w paśmie komfortu | DP: 0 h poniżej `T_min` dla `T_min` 21,0 i 21,5; reguły na granicach pasma; NaN/inf w paśmie → błąd | TC-01, TC-03, TC-04, TC-08, TC-11, sekcja 4.2 | **spełnione** na próbce (jedna doba, model referencyjny) |
+| R4 | Porównanie z klasycznym termostatem | oba warianty na tych samych danych, wyniki zgodne z Lab 4 (40/40) | TC-02, TC-08, TC-09, sekcja 4.2 | **spełnione** |
+| R5 | Publiczne dane pogodowe z udokumentowanego źródła | testy sprawdzają tylko parsowanie zapisanych próbek Open-Meteo (`test_data_sources.py`); pobieranie na żywo sprawdzone ręcznie w Lab 6, nie w Lab 7 (bez testów cudzych API) | `implementation.md` p. 2 | **niesprawdzone** w Lab 7 |
+| R6 | Prognozowany koszt w zł | koszt obu wariantów w zł w CLI i API, przeliczony ręcznie i z pliku wyniku; wyświetlanie w GUI sprawdzane tylko ręcznie (Lab 6) | TC-01, TC-02, TC-08, TC-09 | **spełnione** (CLI, API); GUI: ręcznie |
+| N1 | Czas analizy doby ≤ 1 s | mediana 0,0033 s (24 h); 240 h: 1,24 s (poza zakresem) | sekcja 3 | **spełnione** |
+| U1 | Oszczędność w prawdziwym domu (użyteczność decyzji) | brak reprezentatywnej próbki: jeden dzień, idealna prognoza, budynek referencyjny | sekcja 4.2 | **niesprawdzone** |
 
 ## 6. Sprawdzenie dokumentacji
 
-_(uzupełnia Sebastian Król)_
+_Sebastian Król (nie jest autorem README ani `docs/user-guide.md`; autor: Kacper Mazur)._
+
+Zasada: wykonać instrukcję **samodzielnie, bez ustnych podpowiedzi autora**, w nowym katalogu
+(`git clone` do pustego folderu, nowe `.venv`). Każdy brak zapisać w tabeli i w Issue.
+
+| Krok z dokumentacji | Gdzie | Wynik (OK / brak / błąd) | Uwagi |
+|---|---|---|---|
+| Utworzenie `.venv` i instalacja `requirements.txt` + `requirements-dev.txt` | README (Lab 7), `user-guide.md` p. 2 | | |
+| `python -m pytest`: same `passed` | README (Lab 7) | | |
+| Przypadek poprawny: `python -m heating_optimizer --data data/processed/doba-live.csv --out wyniki/plan.csv`; wynik 5,35 zł / 11,15 zł / 52,1 % | `user-guide.md` p. 3 i 5 | | |
+| Odczyt wyniku: czy z p. 5 wiadomo, co znaczą „Godziny poniżej T_min” i kolumny CSV | `user-guide.md` p. 5 | | |
+| Przypadek błędny: `--data data/test/doba-invalid.csv`; komunikat zgodny z tabelą z p. 6 | `user-guide.md` p. 6 | | |
+| GUI: `npm install`, `npm run api`, `npm run dev`, zmiana `T_min` przelicza plan | `user-guide.md` p. 4 | | |
+
+Data sprawdzenia: ____ · commit: ____ · system / Python: ____
+
+**Znalezione braki:** _(wpisać albo „brak”)_
 
 ## 7. Znane błędy i ograniczenia
 
-_(uzupełnia Sebastian Rączka)_
+_Sebastian Rączka._
+
+| # | Problem | Wpływ | Obejście / stan |
+|---|---|---|---|
+| B1 | CLI przyjmowało `nan`/`inf` w `--t-min`, `--t-max`, `--t-start`: „plan” za 0 zł z kodem 0 | użytkownik dostaje bezsensowny wynik bez ostrzeżenia | **poprawione** w `feature/lab7-test-integracyjny` (Issue Oskara, TC-11) |
+| B2 | CLI przyjmuje liczby skończone spoza zakresu API (5–30 °C), np. `--t-min 40 --t-max 45` → plan z 24 h poniżej `T_min`, kod 0 | wynik formalnie policzony, praktycznie bez sensu | **otwarte**: dodać w `cli.py` te same zakresy co `schemas.py`; do tego czasu korzystać z GUI albo podawać 5–30 °C |
+| B3 | Czas DP rośnie szybciej niż liniowo z horyzontem (24 h: 0,003 s, 240 h: 1,24 s) | plan wielodniowy w GUI byłby odczuwalnie wolny | **otwarte**, poza zakresem (jedna doba); ewentualnie ograniczenie liczby stanów w `optimizer.py` |
+| B4 | Z-10 częściowo: nazwa eksportu bez daty doby live (odpowiedź `/api/optimize` jej nie zawiera) | trudniej rozpoznać plik planu | **otwarte** (z `implementation.md` p. 4): dodać `data_date` do kontraktu |
+| B5 | `docs/diagrams/granice.png` nieaktualny względem `granice.drawio` | dokumentacja architektury pokazuje stary obraz | **otwarte**: wyeksportować PNG z draw.io |
+| B6 | Termostat nie stosuje wymuszeń godzin | porównanie przy wymuszeniach nie jest symetryczne | **otwarte**, informacja w GUI (Z-05) |
+| B7 | Docker bez `data/raw/`: przy braku sieci `/api/live` nie ma próbki offline | brak świeżej doby bez internetu | **otwarte**, zachowanie bezpieczne (zostaje poprzednia doba) |
+
+**Ograniczenia oceny:** jedna doba archiwalna i jeden model budynku; plan przy idealnej prognozie;
+pomiar czasu w środowisku wirtualnym; GUI i zewnętrzne API (PSE, Open-Meteo) sprawdzane tylko ręcznie.
+Przejście testów nie oznacza pełnej użyteczności w warunkach rzeczywistych (U1).
