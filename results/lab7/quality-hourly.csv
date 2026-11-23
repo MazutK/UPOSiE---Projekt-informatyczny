@@ -1,0 +1,5 @@
+przypadek,wariant,godzin,mae_temp_c,max_blad_temp_c,rozne_decyzje
+bazowy,termostat,24,0.0000,0.0000,0
+bazowy,dp,24,0.0000,0.0000,0
+wrazliwosc,termostat,24,0.0000,0.0000,0
+wrazliwosc,dp,24,0.0000,0.0000,0
