@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import sys
 from pathlib import Path
 
@@ -13,6 +14,17 @@ from .plan import Plan
 from .simulation import simulate_thermostat
 
 DEFAULT_DATA = "doba_zmienna_cena"
+
+
+def finite_float(text: str) -> float:
+    """Liczba skończona: NaN i inf dawały „plan” za 0 zł zamiast błędu (Lab 7, TC-11)."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"oczekiwano liczby, otrzymano '{text}'") from None
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError(f"wartość musi być skończoną liczbą, otrzymano '{text}'")
+    return value
 
 
 def parse_override(text: str) -> tuple[int, int]:
@@ -35,9 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--params", type=Path, help="plik JSON z parametrami modelu")
     parser.add_argument("--list", action="store_true", help="wypisz dostępne scenariusze i zakończ")
-    parser.add_argument("--t-min", type=float, default=21.0, help="dolna granica komfortu [°C]")
-    parser.add_argument("--t-max", type=float, default=22.5, help="górna granica komfortu [°C]")
-    parser.add_argument("--t-start", type=float, default=21.8, help="temperatura początkowa [°C]")
+    parser.add_argument(
+        "--t-min", type=finite_float, default=21.0, help="dolna granica komfortu [°C]"
+    )
+    parser.add_argument(
+        "--t-max", type=finite_float, default=22.5, help="górna granica komfortu [°C]"
+    )
+    parser.add_argument(
+        "--t-start", type=finite_float, default=21.8, help="temperatura początkowa [°C]"
+    )
     parser.add_argument(
         "--override",
         type=parse_override,

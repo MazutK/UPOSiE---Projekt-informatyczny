@@ -56,7 +56,10 @@ nie z bieżącego działania kodu. Oczekiwań nie zmienia się po to, żeby test
 | TC-05 | R2, R3 | poprawne (zmiana danych) | `doba-live.csv` z ceną 5 zł/kWh w godz. 10–13 | plan DP inny niż dla doby bazowej; brak grzania w 10–13; nadal 0 h poniżej `T_min` | `problem.md` R2: „zmiana cen powoduje zmianę harmonogramu”; tanie godziny nocne (0,50–0,70 zł/kWh) pozwalają utrzymać pasmo bez drogich godzin | `test_tc05_expensive_hours_change_the_schedule` |
 | TC-06 | R1 | błędne | kopia `doba-live.csv` bez godziny 17; `data/test/doba-invalid.csv` (2 godziny) | `ValueError` z „brakujące godziny [17]” / „niepełna doba”; brak planu na 23 h | UC-01: komunikat „Brakujące godziny …: [17]”, kryterium odbioru (3); `implementation.md` p. 2 (tabela błędów) | `test_tc06_day_without_one_hour_is_rejected`, `test_tc06_invalid_test_day_is_rejected` |
 | TC-07 | R1, R6 | puste | plik z samym nagłówkiem; puste listy cen i pogody | `ValueError`; żadnego planu z kosztem 0 zł | UC-01, „Brak danych / błąd”: obliczenie przerwane, „bez planu i bez kosztu 0 zł” | `test_tc07_file_with_header_only_is_rejected`, `test_tc07_empty_inputs_are_rejected` |
-| TC-08 | R1, R4, R6 | integracyjne | _(uzupełnia Oskar Wysocki: główny przepływ CLI/API)_ | | | `tests/test_integration.py` |
+| TC-08 | R1, R3, R4, R6 | integracyjne (poprawne) | `python -m heating_optimizer --data data/processed/doba-live.csv --out <tmp>/wyniki/plan-2026-10-13.csv` w osobnym procesie | kod 0; plik z 24 godzinami 0..23 i kolumnami z README; z pliku: koszt DP 5,3469 zł, termostat 11,1525 zł, 0 h i 4 h poniżej `T_min`; ceny i pogoda = plik wejściowy; na ekranie „Oszczędność: 5.81 zł (52.1%)” | kryterium odbioru UC-01 (1), `experiment.md` p. 6–7, README (Lab 6) | `test_tc08_cli_main_flow_writes_plan_matching_lab4` |
+| TC-09 | R4, R6 | integracyjne (poprawne) | `POST /api/optimize` ze scenariuszem `doba_live`, pasmo z p. 1 | HTTP 200, 24 wiersze, te same koszty i godziny co TC-08, `saving_pln` 5,8056 | `implementation.md` p. 2 („wynik dla tych samych ustawień jest taki sam” w CLI i GUI) | `test_tc09_api_optimize_matches_cli_for_live_day` |
+| TC-10 | R1 | integracyjne (błędne) | CLI z `data/test/doba-invalid.csv` | kod 1, „niepełna doba — brakujące godziny …”, brak pliku wyniku | `implementation.md` p. 2 (tabela błędów), UC-01 kryterium (3) | `test_tc10_cli_rejects_incomplete_day_without_output` |
+| TC-11 | R3, R6 | integracyjne (niepoprawna wartość) | CLI z `--t-min nan`, `--t-max inf`, `--t-start nan` | kod ≠ 0, brak podsumowania kosztu, brak pliku wyniku | UC-01, „Brak danych / błąd”: obliczenie przerwane, „bez planu i bez kosztu 0 zł”; API odrzuca NaN (Z-03) | `test_tc11_cli_rejects_non_finite_band_without_plan` (3 warianty) |
 
 Pokrycie rodzajów: poprawne (TC-01, 02, 03, 05), graniczne (TC-04), błędne (TC-06), puste (TC-07).
 R5 (dane pogodowe z udokumentowanego źródła) nie jest sprawdzane testami logiki, bo dotyczy pobierania
@@ -72,7 +75,17 @@ Po poprawce dopisujemy nowy wiersz, starych nie usuwamy. Czas: **zestaw** = cał
 | 2026-11-23 | `12c1a95` + `tests/test_logic.py` (przed commitem) | Linux, Python 3.13.18, pytest 9.2.0 | TC-01…TC-07 (`tests/test_logic.py`, 15 testów z parametryzacją) | PASS | 0,06 s (zestaw) | `python -m pytest tests/test_logic.py -v` → `15 passed` |
 | 2026-11-23 | jw. | jw. | całość (`python -m pytest`) | PASS | 0,93 s (zestaw) | `119 passed, 1 warning` (104 dotychczasowe + 15 nowych) |
 | 2026-11-23 | jw. + kontrolowana zmiana (lokalnie, cofnięta) | jw. | TC-04 | FAIL (oczekiwany) | 0,04 s (zestaw) | w `simulation.py` zmieniono `temperature <= t_min` na `<` → `FAILED test_tc04_thermostat_rule_at_band_edges[21.0-0-1]`, `1 failed, 14 passed`; zmianę cofnięto (`git checkout`), ponownie `15 passed` |
-| _(uzupełnia Oskar Wysocki)_ | | | TC-08 | | | |
+| 2026-11-23 | `741b91c` (test bez poprawki) | Linux, Python 3.13.18, pytest 9.2.0 | TC-08, TC-09, TC-10 | PASS | 0,83 s (zestaw `tests/test_integration.py`) | `4 passed` |
+| 2026-11-23 | `741b91c` | jw. | TC-11 (`--t-min nan`, `--t-max inf`) | **FAIL** | jw. | `assert 0 != 0`: CLI kończy się kodem 0 i drukuje plan; przy `--t-min nan` koszt 0,00 zł i 0 h poniżej `T_min`, przy `--t-max inf` termostat grzeje 17 h. Opis w Issue „CLI przyjmuje NaN/inf w pasmie komfortu” |
+| 2026-11-23 | `741b91c` | jw. | TC-11 (`--t-start nan`) | PASS | jw. | kod 1, ale komunikat techniczny „cannot convert float NaN to integer” (poprawiony w następnym commicie) |
+| 2026-11-23 | poprawka w `cli.py` (typ `finite_float` dla `--t-min`, `--t-max`, `--t-start`) | jw. | TC-08…TC-11 | PASS | 0,55 s (zestaw) | `6 passed`; `--t-min nan` → kod 2, „wartość musi być skończoną liczbą, otrzymano 'nan'”, brak pliku |
+| 2026-11-23 | jw. | jw. | całość (`python -m pytest`) | PASS | 1,37 s (zestaw) | `125 passed, 1 warning` |
+
+#### Kontrole jakości danych z Lab 3 na próbce oceny
+
+| Data | Polecenie | Wynik |
+|---|---|---|
+| 2026-11-23 | `python scripts/check_data.py data/processed/doba-live.csv` | `Rekordy: 24`, `Braki: 0`, `Duplikaty hour: 0`, `Kontrola OK` |
 
 ## 3. Pomiar niefunkcjonalny
 
