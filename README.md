@@ -8,6 +8,8 @@ Opis projektu, jak działa silnik i podział pracy zespołu: [`docs/PROJEKT.md`]
 
 - [Opis problemu](docs/problem.md)
 - [Analiza danych](docs/data.md)
+- [Instrukcja użytkownika](docs/user-guide.md)
+- [Testy i ocena (Lab 7)](docs/tests.md)
 
 ## Uruchomienie
 
@@ -131,3 +133,27 @@ Ten sam przepływ w GUI: `npm install`, potem `npm run api` i `npm run dev` → 
 
 Ćwiczenia z instrukcji (osobno od kodu projektu): `python examples/lab6/forecast.py examples/lab6/history.json examples/lab6/results/run-02.json --window 3`
 → `Prognoza: 14.00 zgloszenia/dzien`; opcjonalnie API: `python -m uvicorn examples.lab6.server:app --port 8001`.
+
+## Testy i CI (Lab 7)
+Instrukcja użycia, interpretacja wyniku i komunikaty błędów: [`docs/user-guide.md`](docs/user-guide.md).
+Plan testów, wyniki i statusy wymagań: [`docs/tests.md`](docs/tests.md).
+
+**Instalacja i uruchomienie testów** (z katalogu repozytorium):
+
+```bash
+python -m venv .venv
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1  |  Git Bash: source .venv/Scripts/activate  |  Linux/macOS: source .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+
+python -m pytest -v                                    # wszystkie testy
+python -m pytest -v --junitxml=reports/pytest.xml      # z raportem (tak jak w CI)
+```
+
+Testy są w `tests/` (testy logiki i integracyjny z Lab 7), `packages/core/tests` i `apps/api/tests`.
+Katalog `reports/` jest w `.gitignore`.
+
+**CI:** [`.github/workflows/check.yml`](.github/workflows/check.yml) uruchamia testy przy każdym `push`
+i `pull_request` (Python 3.10, Ubuntu). Raport `test-report` (`pytest.xml`, `pytest.txt`) jest zapisywany
+jako artefakt także wtedy, gdy testy nie przejdą; pobiera się go ze strony przebiegu w zakładce **Actions**.
+Jeśli GitHub Actions nie działa, to samo sprawdzenie wykonuje lokalnie
+`python -m pytest -v --junitxml=reports/pytest.xml`.
