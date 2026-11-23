@@ -1,0 +1,40 @@
+# Lab 7: automatyczne sprawdzenie po każdej zmianie (Kacper Mazur).
+# Uruchamia kontrolę danych z Lab 3, kontrolę obliczeń z Lab 4 i wszystkie testy pytest.
+# Raport JUnit zapisywany jako artefakt także wtedy, gdy testy nie przejdą.
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalacja zależności
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Kontrola danych (Lab 3)
+        run: python scripts/check_data.py data/processed/doba-live.csv
+
+      - name: Kontrola obliczeń (Lab 4)
+        run: |
+          python scripts/check_lab4.py results/lab4
+          python scripts/check_lab4.py results/lab4/sensitivity
+
+      - name: Testy (pytest)
+        run: python -m pytest -v --junitxml=reports/junit.xml
+
+      - name: Raport testów
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: reports/junit.xml

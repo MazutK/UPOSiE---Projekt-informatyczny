@@ -131,3 +131,24 @@ Ten sam przepływ w GUI: `npm install`, potem `npm run api` i `npm run dev` → 
 
 Ćwiczenia z instrukcji (osobno od kodu projektu): `python examples/lab6/forecast.py examples/lab6/history.json examples/lab6/results/run-02.json --window 3`
 → `Prognoza: 14.00 zgloszenia/dzien`; opcjonalnie API: `python -m uvicorn examples.lab6.server:app --port 8001`.
+
+## Testowanie i ocena (Lab 7)
+Plan, wyniki, statusy wymagań i ograniczenia: [`docs/tests.md`](docs/tests.md).
+Instrukcja dla użytkownika (operacja, odczyt wyniku, komunikaty błędów): [`docs/user-guide.md`](docs/user-guide.md).
+
+```bash
+python -m pip install -r requirements.txt -r requirements-dev.txt   # w aktywnym .venv
+
+python -m pytest                              # wszystkie testy: tests/, packages/core/tests, apps/api/tests
+python -m pytest tests/test_logic.py -v       # testy logiki Lab 7 (TC-01…TC-07)
+python -m pytest tests/test_integration.py -v # główny przepływ CLI + API (TC-08…TC-11)
+python -m pytest --junitxml=reports/junit.xml # raport JUnit (reports/ jest w .gitignore)
+python scripts/check_data.py data/processed/doba-live.csv   # kontrola danych z Lab 3
+```
+
+Oczekiwane: wszystkie testy `passed`, `Kontrola OK`. Wyniki pomiarów: `results/lab7/`.
+
+**Automatyczna kontrola:** `.github/workflows/check.yml` uruchamia przy każdym `push` i `pull_request`
+kontrolę danych (Lab 3), kontrolę obliczeń (Lab 4) i `pytest`. Raport JUnit jest do pobrania jako
+artefakt `junit-report` w zakładce Actions (także po nieudanym przebiegu). Lokalny odpowiednik:
+polecenia powyżej + `python scripts/check_lab4.py results/lab4`.
