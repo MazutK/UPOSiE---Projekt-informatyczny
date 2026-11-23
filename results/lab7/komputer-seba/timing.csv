@@ -1,0 +1,11 @@
+data_pomiaru,commit,python,system,cpu,przypadek,godzin,powtorzenie,czas_s
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,1,0.0046
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,2,0.0045
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,3,0.0049
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,4,0.0046
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,5,0.0047
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,1,1.2702
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,2,1.4235
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,3,1.5763
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,4,1.5560
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,5,1.4416

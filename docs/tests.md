@@ -90,7 +90,7 @@ termostatu (te same funkcje co CLI i `POST /api/optimize`; bez sieci i bez HTTP)
 
 **Kryterium (ustalone przed pomiarem):** mediana ≤ **1 s** dla jednej doby (24 h).
 Uzasadnienie: w GUI plan przelicza się sam po każdej zmianie suwaka `T_min`/`T_max`/`T_start`
-i wymuszeń (`docs/user-guide.md`, p. 4). Użytkownik porównuje warianty, więc odpowiedź musi być
+i wymuszeń (zachowanie GUI; w `docs/user-guide.md` jeszcze nieopisane, Issue #18). Użytkownik porównuje warianty, więc odpowiedź musi być
 praktycznie natychmiastowa; 1 s to założenie zespołu (typowa granica, przy której opóźnienie
 zaczyna przerywać pracę). Zakres projektu to jedna doba (`problem.md`), więc kryterium dotyczy 24 h.
 Dziesięciokrotnie większa próbka (240 h) to ćwiczenie z instrukcji: pokazuje, jak czas rośnie z horyzontem.
@@ -104,23 +104,31 @@ Dziesięciokrotnie większa próbka (240 h) to ćwiczenie z instrukcji: pokazuje
 | Parametry | `T_min` 21,0, `T_max` 22,5, `T_start` 21,8, model z `parametry.json` |
 | Metoda | 1 uruchomienie rozgrzewające (nieliczone), 5 powtórzeń, `time.perf_counter`; walidacja wejścia włączona |
 | Kod | commit `5775572` (zmiany Lab 7 nie dotyczą silnika poza walidacją parametrów CLI) |
-| Sprzęt | Linux 6.18 x86_64, Intel Xeon @ 2,30 GHz, 2 rdzenie, Python 3.13.18 (środowisko wirtualne, nie laptop zespołu) |
+| Sprzęt (pomiar 1) | Linux 6.18 x86_64, Intel Xeon @ 2,30 GHz, 2 rdzenie, Python 3.13.18 (środowisko wirtualne, nie komputer zespołu); kod `5775572` |
+| Sprzęt (pomiar 2) | komputer Sebastiana Króla: AMD Ryzen 7 5800X (8 rdzeni / 16 wątków, 3,8 GHz), 32 GB RAM, Windows 11 Pro 10.0.26200, Python 3.14.5 w nowym `.venv`; świeży klon `main` @ `b639c98`; zwykłe programy w tle (bez zamykania aplikacji) |
 
-**Wyniki** (`results/lab7/timing.csv` - każde powtórzenie, `results/lab7/timing-summary.csv` - podsumowanie):
+**Wyniki** (pomiar 1: `results/lab7/timing.csv` - każde powtórzenie, `results/lab7/timing-summary.csv` - podsumowanie;
+pomiar 2: `results/lab7/komputer-seba/timing.csv` i `timing-summary.csv`):
 
-| Przypadek | Godzin | Mediana | Min | Max | Kryterium ≤ 1 s | Kontrola poprawności |
-|---|---|---|---|---|---|---|
-| doba | 24 | **0,0033 s** | 0,0032 s | 0,0037 s | **spełnione** (ok. 300× zapasu) | koszt DP 5,3469 zł, termostat 11,1525 zł (= Lab 4) |
-| 10x | 240 | 1,2446 s | 1,2013 s | 1,3021 s | nie dotyczy (poza zakresem; byłoby niespełnione) | koszt DP 71,1720 zł, termostat 100,1329 zł |
+| Środowisko | Przypadek | Godzin | Mediana | Min | Max | Kryterium ≤ 1 s | Kontrola poprawności |
+|---|---|---|---|---|---|---|---|
+| 1 (VM) | doba | 24 | **0,0033 s** | 0,0032 s | 0,0037 s | **spełnione** (ok. 300× zapasu) | koszt DP 5,3469 zł, termostat 11,1525 zł (= Lab 4) |
+| 1 (VM) | 10x | 240 | 1,2446 s | 1,2013 s | 1,3021 s | nie dotyczy (poza zakresem; byłoby niespełnione) | koszt DP 71,1720 zł, termostat 100,1329 zł |
+| 2 (komputer Seby) | doba | 24 | **0,0046 s** | 0,0045 s | 0,0049 s | **spełnione** (ok. 200× zapasu) | koszt DP 5,3469 zł, termostat 11,1525 zł (= Lab 4) |
+| 2 (komputer Seby) | 10x | 240 | 1,4416 s | 1,2702 s | 1,5763 s | nie dotyczy (poza zakresem; byłoby niespełnione) | koszt DP 71,1720 zł, termostat 100,1329 zł |
 
 **Wniosek:** dla zakresu projektu (jedna doba) czas jest pomijalny wobec kryterium. Czas rośnie
 szybciej niż liniowo: 10 razy dłuższy horyzont daje ok. 380 razy dłuższy czas, bo z każdą godziną
 przybywa stanów DP (temperatura × historia grzałki). Plan na kilka dni w GUI wymagałby zmian
 w `optimizer.py` (np. ograniczenia liczby stanów) - zapisane w sekcji 7.
+Pomiar 2 na komputerze użytkownika potwierdza wynik: doba 0,0046 s (kryterium spełnione), 240 h ok. 310× dłużej.
+Na komputerze Seby czas doby jest nieco dłuższy niż w VM mimo szybszego procesora - inny system i wersja Pythona
+(Windows, 3.14 vs Linux, 3.13) oraz programy w tle; różnica ok. 1 ms nie ma znaczenia wobec kryterium 1 s.
+Koszty w obu środowiskach są identyczne, więc mierzono ten sam przebieg obliczeń.
 
-**Ograniczenia pomiaru:** pomiar w środowisku wirtualnym, nie na komputerze użytkownika; nie obejmuje
-HTTP ani rysowania wykresów w przeglądarce. _(Sebastian Król: dopisz wiersz z pomiarem na swoim
-laptopie - to samo polecenie z `--overwrite` do nowego katalogu, np. `results/lab7/laptop-seba/`.)_
+**Ograniczenia pomiaru:** nie obejmuje HTTP ani rysowania wykresów w przeglądarce; po 5 powtórzeń
+w każdym środowisku; pomiar 2 bez zamykania innych programów (warunki zwykłej pracy, większy rozrzut max).
+Polecenie pomiaru 2: `python scripts/measure_lab7.py data/processed/doba-live.csv <nowy katalog>` w świeżym klonie.
 
 ## 4. Ocena danych, wyników i kodu
 
@@ -205,16 +213,31 @@ Zasada: wykonać instrukcję **samodzielnie, bez ustnych podpowiedzi autora**, w
 
 | Krok z dokumentacji | Gdzie | Wynik (OK / brak / błąd) | Uwagi |
 |---|---|---|---|
-| Utworzenie `.venv` i instalacja `requirements.txt` + `requirements-dev.txt` | README (Lab 7), `user-guide.md` p. 2 | | |
-| `python -m pytest`: same `passed` | README (Lab 7) | | |
-| Przypadek poprawny: `python -m heating_optimizer --data data/processed/doba-live.csv --out wyniki/plan.csv`; wynik 5,35 zł / 11,15 zł / 52,1 % | `user-guide.md` p. 3 i 5 | | |
-| Odczyt wyniku: czy z p. 5 wiadomo, co znaczą „Godziny poniżej T_min” i kolumny CSV | `user-guide.md` p. 5 | | |
-| Przypadek błędny: `--data data/test/doba-invalid.csv`; komunikat zgodny z tabelą z p. 6 | `user-guide.md` p. 6 | | |
-| GUI: `npm install`, `npm run api`, `npm run dev`, zmiana `T_min` przelicza plan | `user-guide.md` p. 4 | | |
+| Utworzenie `.venv` i instalacja `requirements.txt` + `requirements-dev.txt` | README („Testy i CI (Lab 7)”), `user-guide.md` p. 1 | **OK** | `python -m venv .venv`, aktywacja, `python -m pip install -r requirements.txt -r requirements-dev.txt` bez błędów. **Brak** w README „Uruchomienie bez Dockera”: inne, niepełne polecenia (Issue #18, p. 1–2) |
+| `python -m pytest -v`: same `passed` | README („Testy i CI (Lab 7)”), `user-guide.md` p. 6 | **OK** | 128 passed, 1 warning (`StarletteDeprecationWarning` przy fastapi 0.165), 5,14 s |
+| Przypadek poprawny: `python -m heating_optimizer --data data/processed/doba-live.csv --out wyniki/plan.csv`; wynik 5,35 zł / 11,15 zł / 52,1 % | `user-guide.md` p. 2.1 i 4 | **OK** | wynik identyczny z przykładem w p. 4; `wyniki/plan.csv`: 25 linii (nagłówek + 24 h), katalog `wyniki/` utworzony sam |
+| Odczyt wyniku: czy z p. 4 wiadomo, co znaczą „Godziny poniżej T_min” i kolumny CSV | `user-guide.md` p. 4 | **OK** | opis wierszy podsumowania i kolumn wystarcza; nagłówek pliku zgodny z listą kolumn w p. 4 |
+| Przypadek błędny: `--data data/test/doba-invalid.csv`; komunikat zgodny z tabelą z p. 5 | `user-guide.md` p. 5 | **OK** | `Błąd: doba-invalid.csv: niepełna doba — brakujące godziny [2, 3, …, 23]`, kod 1, brak pliku `wyniki/bad.csv`. Dodatkowo ponowny `--out wyniki/plan.csv`: `Błąd: plik wyniki\plan.csv już istnieje — podaj nową nazwę`, kod 1 (zgodnie z p. 5) |
+| GUI: `npm install`, `npm run api`, `npm run dev`, zmiana `T_min` przelicza plan | `user-guide.md` p. 2.2 | **NOT RUN** | na komputerze sprawdzającym nie ma Node.js (`npm` nieznane) - wymaganie Node 20+ jest w p. 1, więc to nie brak dokumentacji. **Brak:** `user-guide.md` nie opisuje obsługi GUI (Issue #18, p. 3) |
 
-Data sprawdzenia: ____ · commit: ____ · system / Python: ____
+Data sprawdzenia: 2026-11-23 · commit: `b639c98` (świeży `git clone`, nowe `.venv`) · system / Python: Windows 11 Pro 10.0.26200, Python 3.14.5, git 2.56.0
 
-**Znalezione braki:** _(wpisać albo „brak”)_
+Sprawdzał Sebastian Król, bez podpowiedzi autora (Kacper Mazur): polecenia wykonane dokładnie w brzmieniu z dokumentacji,
+przebieg zapisany do logu (wyniki wyżej). Odwołania do punktów `user-guide.md` w tabeli poprawione do obecnej numeracji (1–6).
+
+**Znalezione braki** (zgłoszone w [Issue #18](https://github.com/MazutK/UPOSiE---Projekt-informatyczny/issues/18)):
+
+1. README, „Uruchomienie bez Dockera”: `pip install -r requirements-dev.txt` bez `requirements.txt` (brak `pandas`
+   dla `scripts/check_data.py` i testu `test_int_01`); `.venv\Scripts\activate` nie działa w PowerShell;
+   `npm run api` i `npm run dev` w jednym bloku, choć pierwsze blokuje terminal, i bez informacji, że terminal z API
+   potrzebuje aktywnego `.venv`.
+2. README ma cztery różne bloki instalacji (bez Dockera, Lab 4, Lab 6, Lab 7) - nie wiadomo, który jest aktualny.
+3. `docs/user-guide.md` nie opisuje obsługi GUI (panel ustawień, wymuszenia, dane publiczne, eksport, wykresy),
+   choć GUI to główny interfejs z README.
+4. Drobne: wersje zależności bez górnych ograniczeń (ostrzeżenie przy świeżej instalacji); na Windows ścieżki
+   w komunikatach z `\`, w dokumentacji z `/`.
+
+Przypadek poprawny i błędny z `user-guide.md` działają zgodnie z opisem; braki dotyczą instrukcji, nie programu.
 
 ## 7. Znane błędy i ograniczenia
 

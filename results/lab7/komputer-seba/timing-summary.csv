@@ -1,0 +1,3 @@
+data_pomiaru,commit,python,system,cpu,przypadek,godzin,powtorzen,mediana_s,min_s,max_s,kryterium_s,kryterium_spelnione,koszt_dp_pln,koszt_termostat_pln
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",doba,24,5,0.0046,0.0045,0.0049,1.0,True,5.3469,11.1525
+2026-11-23T20:46:53,b639c98,3.14.5,Windows 11 AMD64,"AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",10x,240,5,1.4416,1.2702,1.5763,1.0,False,71.1720,100.1329
