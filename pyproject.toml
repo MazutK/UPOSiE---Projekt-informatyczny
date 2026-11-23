@@ -12,5 +12,5 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-testpaths = ["packages/core/tests", "apps/api/tests"]
+testpaths = ["tests", "packages/core/tests", "apps/api/tests"]
 pythonpath = ["packages/core/src", "apps/api/src"]
