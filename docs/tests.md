@@ -76,7 +76,44 @@ Po poprawce dopisujemy nowy wiersz, starych nie usuwamy. Czas: **zestaw** = cał
 
 ## 3. Pomiar niefunkcjonalny
 
-_(uzupełnia Sebastian Król)_
+_Sebastian Król._
+
+**Właściwość:** czas pełnej analizy UC-01: wczytanie i walidacja doby z CSV, plan DP i symulacja
+termostatu (te same funkcje co CLI i `POST /api/optimize`; bez sieci i bez HTTP).
+
+**Kryterium (ustalone przed pomiarem):** mediana ≤ **1 s** dla jednej doby (24 h).
+Uzasadnienie: w GUI plan przelicza się sam po każdej zmianie suwaka `T_min`/`T_max`/`T_start`
+i wymuszeń (`docs/user-guide.md`, p. 4). Użytkownik porównuje warianty, więc odpowiedź musi być
+praktycznie natychmiastowa; 1 s to założenie zespołu (typowa granica, przy której opóźnienie
+zaczyna przerywać pracę). Zakres projektu to jedna doba (`problem.md`), więc kryterium dotyczy 24 h.
+Dziesięciokrotnie większa próbka (240 h) to ćwiczenie z instrukcji: pokazuje, jak czas rośnie z horyzontem.
+
+**Warunki:**
+
+| Element | Ustalenie |
+|---|---|
+| Polecenie | `python scripts/measure_lab7.py data/processed/doba-live.csv results/lab7` |
+| Dane | `doba-live.csv` (24 h, MD5 `729ecf79…`); 10x = ta sama doba powtórzona 10 razy (240 h, plik tymczasowy) |
+| Parametry | `T_min` 21,0, `T_max` 22,5, `T_start` 21,8, model z `parametry.json` |
+| Metoda | 1 uruchomienie rozgrzewające (nieliczone), 5 powtórzeń, `time.perf_counter`; walidacja wejścia włączona |
+| Kod | commit `5775572` (zmiany Lab 7 nie dotyczą silnika poza walidacją parametrów CLI) |
+| Sprzęt | Linux 6.18 x86_64, Intel Xeon @ 2,30 GHz, 2 rdzenie, Python 3.13.18 (środowisko wirtualne, nie laptop zespołu) |
+
+**Wyniki** (`results/lab7/timing.csv` - każde powtórzenie, `results/lab7/timing-summary.csv` - podsumowanie):
+
+| Przypadek | Godzin | Mediana | Min | Max | Kryterium ≤ 1 s | Kontrola poprawności |
+|---|---|---|---|---|---|---|
+| doba | 24 | **0,0033 s** | 0,0032 s | 0,0037 s | **spełnione** (ok. 300× zapasu) | koszt DP 5,3469 zł, termostat 11,1525 zł (= Lab 4) |
+| 10x | 240 | 1,2446 s | 1,2013 s | 1,3021 s | nie dotyczy (poza zakresem; byłoby niespełnione) | koszt DP 71,1720 zł, termostat 100,1329 zł |
+
+**Wniosek:** dla zakresu projektu (jedna doba) czas jest pomijalny wobec kryterium. Czas rośnie
+szybciej niż liniowo: 10 razy dłuższy horyzont daje ok. 380 razy dłuższy czas, bo z każdą godziną
+przybywa stanów DP (temperatura × historia grzałki). Plan na kilka dni w GUI wymagałby zmian
+w `optimizer.py` (np. ograniczenia liczby stanów) - zapisane w sekcji 7.
+
+**Ograniczenia pomiaru:** pomiar w środowisku wirtualnym, nie na komputerze użytkownika; nie obejmuje
+HTTP ani rysowania wykresów w przeglądarce. _(Sebastian Król: dopisz wiersz z pomiarem na swoim
+laptopie - to samo polecenie z `--overwrite` do nowego katalogu, np. `results/lab7/laptop-seba/`.)_
 
 ## 4. Ocena danych, wyników i kodu
 
@@ -88,7 +125,23 @@ _(uzupełnia Sebastian Rączka)_
 
 ## 6. Sprawdzenie dokumentacji
 
-_(uzupełnia Sebastian Król)_
+_Sebastian Król (nie jest autorem README ani `docs/user-guide.md`; autor: Kacper Mazur)._
+
+Zasada: wykonać instrukcję **samodzielnie, bez ustnych podpowiedzi autora**, w nowym katalogu
+(`git clone` do pustego folderu, nowe `.venv`). Każdy brak zapisać w tabeli i w Issue.
+
+| Krok z dokumentacji | Gdzie | Wynik (OK / brak / błąd) | Uwagi |
+|---|---|---|---|
+| Utworzenie `.venv` i instalacja `requirements.txt` + `requirements-dev.txt` | README (Lab 7), `user-guide.md` p. 2 | | |
+| `python -m pytest`: same `passed` | README (Lab 7) | | |
+| Przypadek poprawny: `python -m heating_optimizer --data data/processed/doba-live.csv --out wyniki/plan.csv`; wynik 5,35 zł / 11,15 zł / 52,1 % | `user-guide.md` p. 3 i 5 | | |
+| Odczyt wyniku: czy z p. 5 wiadomo, co znaczą „Godziny poniżej T_min” i kolumny CSV | `user-guide.md` p. 5 | | |
+| Przypadek błędny: `--data data/test/doba-invalid.csv`; komunikat zgodny z tabelą z p. 6 | `user-guide.md` p. 6 | | |
+| GUI: `npm install`, `npm run api`, `npm run dev`, zmiana `T_min` przelicza plan | `user-guide.md` p. 4 | | |
+
+Data sprawdzenia: ____ · commit: ____ · system / Python: ____
+
+**Znalezione braki:** _(wpisać albo „brak”)_
 
 ## 7. Znane błędy i ograniczenia
 
