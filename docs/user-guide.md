@@ -13,6 +13,7 @@ Instalacja (z katalogu repozytorium):
 ```bash
 python -m venv .venv
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# Windows cmd:        .venv\Scripts\activate.bat
 # Windows Git Bash:   source .venv/Scripts/activate
 # Linux/macOS:        source .venv/bin/activate
 python -m pip install -r requirements.txt -r requirements-dev.txt
@@ -42,8 +43,46 @@ Wbudowane scenariusze: `doba_live`, `doba_mroz`, `doba_slonecznie`, `doba_szczyt
 ### 2.2. Interfejs graficzny
 
 - Docker: `docker compose up --build`, potem <http://localhost:8080>.
-- Bez Dockera: `npm install`, następnie w dwóch terminalach `npm run api` i `npm run dev`,
-  potem <http://localhost:5173>.
+- Bez Dockera: jednorazowo `npm install`, następnie **dwa terminale** (każde polecenie blokuje swój terminal):
+  1. `npm run api` - w terminalu z aktywnym `.venv` (patrz sekcja 1), bo API korzysta z pakietów
+     zainstalowanych w `.venv`; API działa na porcie 8000,
+  2. `npm run dev` - potem otworzyć <http://localhost:5173>.
+
+  Zatrzymanie: `Ctrl+C` w obu terminalach.
+
+### 2.3. Obsługa interfejsu graficznego
+
+Ekran ma dwie kolumny: po lewej ustawienia, po prawej wynik. **Plan przelicza się automatycznie po każdej
+zmianie ustawień** - nie ma przycisku „Oblicz”. W trakcie liczenia widać napis „Liczę plan…”.
+
+**Lewa kolumna - ustawienia**
+
+| Panel | Co się ustawia |
+|---|---|
+| **Parametry** | *Scenariusz doby* (dane cen i pogody, lista jak w `--list`), *T_min* i *T_max* - pasmo komfortu [°C], *T_start* - temperatura na początku doby [°C], *max_overshoot* - o ile stopni plan może przekroczyć T_max [°C]. Jeśli ustawisz T_min powyżej T_max, druga granica przesunie się sama. |
+| **Dane publiczne (PSE + Open-Meteo)** | Wybierz datę i kliknij **Pobierz dobę** - program pobiera ceny RCE z PSE i pogodę z Open-Meteo, zapisuje dobę w `data-local/` i przełącza scenariusz na `doba_live`. Komunikat pod przyciskiem mówi, z jakiej daty i z jakiego źródła są dane. Gdy któreś źródło nie odpowiada, używana jest cała zapisana próbka offline (z innego dnia) - komunikat o tym ostrzega. Nową datę na liście scenariuszy widać po odświeżeniu strony. |
+| **Wymuszenia godzin** | Siatka 24 godzin. Kliknięcie zmienia stan godziny: *Auto* → *ON* (wymuś grzanie) → *OFF* (wymuś brak grzania) → *Auto*. **Wyczyść wymuszenia** usuwa wszystkie. Wymuszenia dotyczą tylko optymalizatora - termostat ich nie uwzględnia, więc przy aktywnych wymuszeniach oszczędność porównuje dwa plany w różnych warunkach (pod siatką pojawia się o tym informacja). |
+
+**Prawa kolumna - wynik** (od góry)
+
+1. **Podsumowanie** - oszczędność wobec termostatu (zł i %) oraz koszt energii, zużyta energia, godziny grzania
+   i godziny poniżej T_min dla obu metod (znaczenie jak w sekcji 4).
+2. **Temperatura wewnętrzna** - przebieg temperatury dla optymalizatora i termostatu; zacieniony pas to
+   pasmo komfortu T_min-T_max, osobna linia (oś prawa) to temperatura na zewnątrz.
+3. **Cena energii i godziny grzania** - cena w każdej godzinie i słupki godzin, w których każda metoda włącza grzałkę.
+   Optymalizator powinien grzać głównie w tanich godzinach.
+4. **Plan godzina po godzinie** - tabela jak w wierszu poleceń (`1` = grzanie włączone).
+5. **Pobierz plan godzinowy (CSV)** - zapisuje plan do pliku. Nazwa pliku zawiera scenariusz, T_min, T_max,
+   T_start i datę eksportu, np. `plan_grzania_doba_live_tmin21.0_tmax22.5_tstart21.8_2026-11-24.csv`.
+   Kolumny jak w pliku `--out` (sekcja 4) plus koszt godzinowy obu metod (`optimal_cost_pln`, `thermostat_cost_pln`).
+6. **Porównanie metod sterowania** - te same dane i pasmo dla 4 metod: programowanie dynamiczne (DP, optymalizator),
+   termostat z histerezą (baza), reguła zachłanna (grzeje, gdy cena jest poniżej mediany doby) i stały próg T_min.
+   Tabela pokazuje koszt, energię, godziny grzania, godziny poniżej T_min i oszczędność wobec termostatu.
+7. **Analiza wrażliwości** - wybierz parametr: *T_min* (20,0-22,0 °C) albo *max_overshoot* (0-2 °C);
+   tabela pokazuje, jak zmienia się koszt obu metod, oszczędność i godziny poniżej T_min dla 5 wartości.
+
+Przy błędzie (np. wyłączone API, niepoprawne dane) u góry pojawia się komunikat błędu (z czerwonym paskiem z lewej), a prawa kolumna
+**nie pokazuje** poprzedniego planu - wynik zawsze odpowiada bieżącym ustawieniom.
 
 ## 3. Dane wejściowe
 
@@ -93,7 +132,8 @@ Wynik dotyczy modelu budynku z pliku parametrów, a nie konkretnego domu. Ograni
 ## 5. Komunikaty błędów
 
 Przy błędzie program wypisuje komunikat zaczynający się od `Błąd:` i kończy się kodem 1, bez zapisu
-pliku wyniku. Błędne opcje wiersza poleceń kończą się kodem 2.
+pliku wyniku. Błędne opcje wiersza poleceń kończą się kodem 2. Na Windows ścieżki w komunikatach mają
+ukośnik `\` (np. `wyniki\plan.csv`), w tabeli niżej zapisano je z `/`.
 
 | Komunikat (przykład) | Przyczyna | Co zrobić |
 |---|---|---|
